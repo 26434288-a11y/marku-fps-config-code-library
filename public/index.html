@@ -21,7 +21,7 @@
           <button class="tab is-active" type="button" data-game="暗区突围">暗区突围</button>
           <button class="tab" type="button" data-game="三角洲行动">三角洲行动</button>
         </div>
-        <button class="icon-btn" id="settingsBtn" type="button" data-tooltip="设置" aria-label="设置">
+        <button class="icon-btn" id="settingsBtn" type="button" aria-label="设置">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
             <circle cx="12" cy="12" r="3"></circle>
@@ -112,7 +112,7 @@
   <dialog id="detailDialog" class="dialog">
     <div class="dialog-header">
       <h2>详情</h2>
-      <button class="icon-btn" type="button" data-close-dialog data-tooltip="关闭" aria-label="关闭">
+      <button class="icon-btn" type="button" data-close-dialog aria-label="关闭">
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M18 6 6 18M6 6l12 12"></path>
         </svg>
@@ -136,7 +136,7 @@
   <dialog id="formDialog" class="dialog">
     <div class="dialog-header">
       <h2 id="formTitle">新增</h2>
-      <button class="icon-btn" type="button" data-close-dialog data-tooltip="关闭" aria-label="关闭">
+      <button class="icon-btn" type="button" data-close-dialog aria-label="关闭">
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M18 6 6 18M6 6l12 12"></path>
         </svg>
@@ -192,7 +192,7 @@
   <dialog id="settingsDialog" class="dialog">
     <div class="dialog-header">
       <h2>设置</h2>
-      <button class="icon-btn" type="button" data-close-dialog data-tooltip="关闭" aria-label="关闭">
+      <button class="icon-btn" type="button" data-close-dialog aria-label="关闭">
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M18 6 6 18M6 6l12 12"></path>
         </svg>
@@ -227,7 +227,7 @@
 
   <dialog id="queryDialog" class="dialog dialog-wide">
     <div class="dialog-header">
-      <h2>参数查询</h2>
+      <h2>预览配置码</h2>
       <div class="dialog-header-actions">
         <button class="icon-btn" id="queryExportBtn" type="button" data-tooltip="导出 TXT" aria-label="导出 TXT">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -242,7 +242,7 @@
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
           </svg>
         </button>
-        <button class="icon-btn" type="button" data-close-dialog data-tooltip="关闭" aria-label="关闭">
+        <button class="icon-btn" type="button" data-close-dialog aria-label="关闭">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M18 6 6 18M6 6l12 12"></path>
           </svg>
@@ -257,7 +257,7 @@
   <dialog id="settingsCodeDialog" class="dialog dialog-wide">
     <div class="dialog-header">
       <h2 id="settingsCodeTitle">设置码</h2>
-      <button class="icon-btn" type="button" data-close-dialog data-tooltip="关闭" aria-label="关闭">
+      <button class="icon-btn" type="button" data-close-dialog aria-label="关闭">
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M18 6 6 18M6 6l12 12"></path>
         </svg>
@@ -319,7 +319,7 @@
   <dialog id="confirmDialog" class="dialog confirm-dialog">
     <div class="dialog-header">
       <h2 id="confirmTitle">确认</h2>
-      <button class="icon-btn" type="button" data-close-dialog data-tooltip="关闭" aria-label="关闭">
+      <button class="icon-btn" type="button" data-close-dialog aria-label="关闭">
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M18 6 6 18M6 6l12 12"></path>
         </svg>
@@ -346,7 +346,7 @@
             <path d="M3 21v-5h5"></path>
           </svg>
         </button>
-        <button class="icon-btn" type="button" data-close-dialog data-tooltip="关闭" aria-label="关闭">
+        <button class="icon-btn" type="button" data-close-dialog aria-label="关闭">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M18 6 6 18M6 6l12 12"></path>
           </svg>

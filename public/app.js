@@ -141,15 +141,6 @@
       .replace(/'/g, "&#39;");
   }
 
-  function formatDate(iso) {
-    const date = new Date(iso);
-    if (Number.isNaN(date.getTime())) return "";
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  }
-
   function displayPrice(price) {
     return price ? `${price}W` : "";
   }
@@ -810,7 +801,6 @@
             item.type
           )}</span>`
         : "";
-
     return `<article class="row" data-id="${escapeHtml(item.id)}" draggable="${draggable ? "true" : "false"}">
       ${
         draggable
@@ -1358,8 +1348,7 @@
       return;
     }
     const ids = [...listEl.querySelectorAll(".row")].map((row) => row.dataset.id);
-    state.reorderMode = false;
-    updateReorderButton();
+    setReorderMode(false);
     await reorderCodes(ids);
   }
 

@@ -379,8 +379,18 @@ async function handleApi(req, res, pathname, url) {
       const input = await readJson(req);
       const { errors, entry } = validateEntry(input);
       if (errors.length) return sendJson(res, 400, { errors });
+      const gameOrder = sortCodes(codes)
+        .filter((item) => item.game === entry.game)
+        .map((item) => item.id);
+      const position = gameOrder.indexOf(id);
       const updated = { ...codes[index], ...entry, updatedAt: new Date().toISOString() };
       codes[index] = updated;
+      if (position >= 0) gameOrder.splice(position, 1);
+      gameOrder.splice(position < 0 ? gameOrder.length : position, 0, id);
+      gameOrder.forEach((itemId, order) => {
+        const item = codes.find((entryItem) => entryItem.id === itemId);
+        if (item) item.order = order;
+      });
       saveCodes();
       sendJson(res, 200, { item: updated });
       return;
@@ -393,46 +403,6 @@ async function handleApi(req, res, pathname, url) {
       codes.splice(index, 1);
       saveCodes();
       sendJson(res, 200, { ok: true });
-      return;
-    }
-
-    if (req.method === 'GET' && pathname === '/api/export') {
-      sendJson(res, 200, { items: sortCodes(codes), exportedAt: new Date().toISOString() });
-      return;
-    }
-
-    if (req.method === 'POST' && pathname === '/api/import') {
-      const input = await readJson(req);
-      const incoming = Array.isArray(input) ? input : input.items;
-      if (!Array.isArray(incoming)) return sendJson(res, 400, { error: '导入数据格式不正确' });
-
-      let added = 0;
-      let updated = 0;
-      let skipped = 0;
-
-      for (const raw of incoming) {
-        if (!raw || typeof raw !== 'object') {
-          skipped += 1;
-          continue;
-        }
-        const { errors, entry } = validateEntry(raw);
-        if (errors.length) {
-          skipped += 1;
-          continue;
-        }
-        const now = new Date().toISOString();
-        const existing = raw.id && codes.find((item) => item.id === raw.id);
-        if (existing) {
-          Object.assign(existing, entry, { updatedAt: now });
-          updated += 1;
-        } else {
-          codes.push({ id: randomUUID(), ...entry, createdAt: now, updatedAt: now });
-          added += 1;
-        }
-      }
-
-      saveCodes();
-      sendJson(res, 200, { added, updated, skipped });
       return;
     }
 
