@@ -2,7 +2,9 @@ node_modules/
 runtime/
 Marku-portable/
 Marku-portable.zip
+Marku-Code-Library.zip
 Marku.exe
+.build/
 *.log
 
 data/codes.json
