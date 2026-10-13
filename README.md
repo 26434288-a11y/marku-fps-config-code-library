@@ -12,8 +12,16 @@
 - 手动拖动调整顺序
 - 白天 / 黑夜主题
 - 参数查询与 TXT 导出
+- 双游戏官方更新公告与本地缓存
+- 应用内反馈入口与 GitHub Issue 模板
 - 数据保存在本地 JSON 文件
 - 原生 HTML / CSS / JavaScript，无前端构建步骤
+
+## 下载便携版
+
+普通用户请下载最新 Release 中的 `Marku-Code-Library.zip`。完整解压后双击 `Marku.exe` 即可运行。
+
+[下载最新版本](https://github.com/26434288-a11y/marku-fps-config-code-library/releases/latest)
 
 ## 运行
 
@@ -48,6 +56,7 @@ $env:PORT=8080; node server.js
 
 - [更新日志](CHANGELOG.md)
 - [常见问题](FAQ.md)
+- [反馈问题或建议](https://github.com/26434288-a11y/marku-fps-config-code-library/issues/new/choose)
 - [MIT License](LICENSE)
 
 ## 安全

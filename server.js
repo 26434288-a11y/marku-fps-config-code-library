@@ -10,6 +10,15 @@ const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const DATA_FILE = path.join(ROOT, 'data', 'codes.json');
 const SETTINGS_FILE = path.join(ROOT, 'data', 'settings.json');
+const ANNOUNCEMENT_CACHE_FILE = path.join(
+  ROOT,
+  'data',
+  'announcements-cache.json'
+);
+const DELTA_ANNOUNCEMENT_URL =
+  process.env.ANNOUNCEMENT_URL || 'https://comm.ams.game.qq.com/ide/';
+const ARENA_ANNOUNCEMENT_URL = 'https://apps.game.qq.com/cmc/cross';
+const ANNOUNCEMENT_TIMEOUT_MS = 9000;
 const MAX_BODY_BYTES = 1024 * 1024;
 
 const MIME = {
@@ -107,9 +116,83 @@ function sortCodes(list) {
 }
 
 const ANNOUNCEMENT_CACHE_MS = 5 * 60 * 1000;
-let announcementCache = { at: 0, total: 0, items: [] };
+const ANNOUNCEMENT_CACHE_VERSION = 2;
+let announcementCache = loadAnnouncementCache();
 
-async function fetchAnnouncements(limit, start) {
+function createAnnouncementCache() {
+  return { at: 0, total: 0, items: [] };
+}
+
+function normalizeAnnouncementCache(value) {
+  if (!value || typeof value !== 'object') return createAnnouncementCache();
+  return {
+    at: Number(value.at || 0),
+    total: Number(value.total || 0),
+    items: Array.isArray(value.items) ? value.items : [],
+  };
+}
+
+function loadAnnouncementCache() {
+  try {
+    const raw = fs.readFileSync(ANNOUNCEMENT_CACHE_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (Number(parsed.version || 0) !== ANNOUNCEMENT_CACHE_VERSION) {
+      throw new Error('公告缓存版本已更新');
+    }
+    const games = parsed.games || {};
+    return {
+      暗区突围: normalizeAnnouncementCache(games['暗区突围'] || parsed.arena),
+      三角洲行动: normalizeAnnouncementCache(
+        games['三角洲行动'] || parsed.delta || parsed
+      ),
+    };
+  } catch (err) {
+    return {
+      暗区突围: createAnnouncementCache(),
+      三角洲行动: createAnnouncementCache(),
+    };
+  }
+}
+
+function saveAnnouncementCache() {
+  try {
+    fs.mkdirSync(path.dirname(ANNOUNCEMENT_CACHE_FILE), { recursive: true });
+    fs.writeFileSync(
+      ANNOUNCEMENT_CACHE_FILE,
+      JSON.stringify(
+        {
+          version: ANNOUNCEMENT_CACHE_VERSION,
+          games: announcementCache,
+        },
+        null,
+        2
+      ) + '\n'
+    );
+  } catch {
+    // Announcement caching is best effort.
+  }
+}
+
+async function fetchWithTimeout(url, options) {
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    ANNOUNCEMENT_TIMEOUT_MS
+  );
+
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function normalizeAnnouncementImage(image) {
+  if (!image) return '';
+  return String(image).startsWith('//') ? `https:${image}` : String(image);
+}
+
+async function fetchDeltaAnnouncementsOnce(limit, start) {
   const body = new URLSearchParams({
     iChartId: '329849',
     iSubChartId: '329849',
@@ -122,7 +205,7 @@ async function fetchAnnouncements(limit, start) {
     needGopenid: '1',
   });
 
-  const response = await fetch('https://comm.ams.game.qq.com/ide/', {
+  const response = await fetchWithTimeout(DELTA_ANNOUNCEMENT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
@@ -140,11 +223,6 @@ async function fetchAnnouncements(limit, start) {
     total: Number(data.total || 0),
     items: items.map((item) => {
       const docId = String(item.iDocID || '');
-      const image = item.sIMG
-        ? item.sIMG.startsWith('//')
-          ? `https:${item.sIMG}`
-          : item.sIMG
-        : '';
       return {
         id: docId,
         title: String(item.sTitle || ''),
@@ -153,15 +231,82 @@ async function fetchAnnouncements(limit, start) {
         url:
           item.sRedirectURL ||
           `https://df.qq.com/cp/a20240906main/newsdetail.html?id=${docId}`,
-        image,
+        image: normalizeAnnouncementImage(item.sIMG),
       };
     }),
   };
 }
 
+async function fetchArenaAnnouncementsOnce(limit, start) {
+  const params = new URLSearchParams({
+    serviceId: '463',
+    source: 'web_pc',
+    typeids: '1,2',
+    limit: String(limit),
+    start: String(start),
+    filter: 'channel',
+    chanid: '6887',
+    withtop: 'yes',
+    topMode: 'new',
+  });
+  const response = await fetchWithTimeout(
+    `${ARENA_ANNOUNCEMENT_URL}?${params.toString()}`,
+    { method: 'GET' }
+  );
+
+  if (!response.ok) {
+    throw new Error(`暗区公告接口返回 ${response.status}`);
+  }
+
+  const payload = await response.json();
+  if (String(payload.status) !== '0') {
+    throw new Error(payload.msg || '暗区公告获取失败');
+  }
+
+  const data = payload.data || {};
+  const items = Array.isArray(data.items) ? data.items : [];
+  const total = Number(data.total || 0);
+
+  return {
+    total,
+    items: items.map((item) => {
+      const newsId = String(item.iNewsId || '');
+      return {
+        id: String(item.iId || newsId),
+        title: String(item.sTitle || ''),
+        date: String(item.sCreated || item.sIdxTime || ''),
+        channel: String(item.sTagIds || ''),
+        url:
+          item.sRedirectURL ||
+          `https://aqtwwx.qq.com/web202501/newsdetail.html?newsid=${newsId}`,
+        image: normalizeAnnouncementImage(item.sIMG),
+      };
+    }),
+  };
+}
+
+async function fetchAnnouncementsOnce(game, limit, start) {
+  if (game === '暗区突围') {
+    return fetchArenaAnnouncementsOnce(limit, start);
+  }
+  return fetchDeltaAnnouncementsOnce(limit, start);
+}
+
+async function fetchAnnouncements(game, limit, start) {
+  try {
+    return await fetchAnnouncementsOnce(game, limit, start);
+  } catch {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    return fetchAnnouncementsOnce(game, limit, start);
+  }
+}
+
 function sendJson(res, status, payload) {
   const body = JSON.stringify(payload);
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+  });
   res.end(body);
 }
 
@@ -309,33 +454,53 @@ async function handleApi(req, res, pathname, url) {
     }
 
     if (req.method === 'GET' && pathname === '/api/announcements') {
+      const game =
+        url.searchParams.get('game') === '暗区突围'
+          ? '暗区突围'
+          : '三角洲行动';
       const limit = Math.min(
         Math.max(Number(url.searchParams.get('limit') || 20), 1),
         50
       );
       const start = Math.max(Number(url.searchParams.get('start') || 0), 0);
       const now = Date.now();
+      const gameCache =
+        announcementCache[game] || createAnnouncementCache();
+      announcementCache[game] = gameCache;
 
       if (
         start === 0 &&
-        announcementCache.items.length &&
-        now - announcementCache.at < ANNOUNCEMENT_CACHE_MS
+        gameCache.items.length &&
+        now - gameCache.at < ANNOUNCEMENT_CACHE_MS
       ) {
-        return sendJson(res, 200, { ...announcementCache, cached: true });
+        return sendJson(res, 200, { ...gameCache, cached: true, game });
       }
 
       try {
-        const result = await fetchAnnouncements(limit, start);
+        const result = await fetchAnnouncements(game, limit, start);
         if (start === 0) {
-          announcementCache = {
+          announcementCache[game] = {
             at: now,
             total: result.total,
             items: result.items,
           };
+          saveAnnouncementCache();
         }
-        return sendJson(res, 200, result);
+        return sendJson(res, 200, { ...result, game });
       } catch (err) {
-        return sendJson(res, 502, { error: err.message || '公告获取失败' });
+        if (gameCache.items.length) {
+          return sendJson(res, 200, {
+            ...gameCache,
+            cached: true,
+            stale: true,
+            game,
+            warning: `网络连接失败，当前显示上次缓存的${game}公告`,
+          });
+        }
+        return sendJson(res, 502, {
+          error: '无法连接公告服务器，请检查网络后重试',
+          code: 'ANNOUNCEMENT_NETWORK_ERROR',
+        });
       }
     }
 
@@ -369,7 +534,10 @@ function serveStatic(req, res, pathname) {
       return;
     }
     const ext = path.extname(filePath).toLowerCase();
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+    res.writeHead(200, {
+      'Content-Type': MIME[ext] || 'application/octet-stream',
+      'Cache-Control': 'no-store',
+    });
     res.end(data);
   });
 }

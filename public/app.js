@@ -16,6 +16,9 @@
       items: [],
       total: 0,
       loading: false,
+      stale: false,
+      warning: "",
+      game: "",
     },
     filters: {
       game: "暗区突围",
@@ -33,6 +36,7 @@
   let draggedRow = null;
   let draggedRecently = false;
   let tabIndicatorReady = false;
+  const animatedSegmentIndicators = new WeakSet();
 
   const $ = (selector) => document.querySelector(selector);
 
@@ -76,6 +80,7 @@
   const queryResult = $("#queryResult");
   const queryExportBtn = $("#queryExportBtn");
   const queryCopyAllBtn = $("#queryCopyAllBtn");
+  const feedbackBtn = $("#feedbackBtn");
   const settingsCodeBtn = $("#settingsCodeBtn");
   const settingsCodeDialog = $("#settingsCodeDialog");
   const settingsCodeForm = $("#settingsCodeForm");
@@ -399,34 +404,112 @@
     }
   }
 
-  function applyTheme() {
-    document.documentElement.setAttribute("data-theme", settings.theme);
+  let themeTransitionTimer;
+
+  function applyTheme({ animate = true } = {}) {
+    const root = document.documentElement;
+    const currentTheme = root.getAttribute("data-theme") || settings.theme;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    if (!animate || reduceMotion || currentTheme === settings.theme) {
+      clearTimeout(themeTransitionTimer);
+      root.classList.remove("theme-transitioning");
+      root.setAttribute("data-theme", settings.theme);
+      return;
+    }
+
+    clearTimeout(themeTransitionTimer);
+    root.classList.add("theme-transitioning");
+    requestAnimationFrame(() => {
+      root.setAttribute("data-theme", settings.theme);
+      themeTransitionTimer = window.setTimeout(() => {
+        root.classList.remove("theme-transitioning");
+      }, 500);
+    });
   }
 
-  function updateSegmentIndicator(control) {
+  function setSegmentIndicator(control, left, width) {
+    control.style.setProperty("--segment-indicator-left", `${left}px`);
+    control.style.setProperty("--segment-indicator-width", `${width}px`);
+  }
+
+  function updateSegmentIndicator(control, { animate = true } = {}) {
     const indicator = control.querySelector(".segment-indicator");
     const active = control.querySelector(".segment.is-active");
     if (!indicator || !active || !control.offsetWidth) return;
 
-    control.style.setProperty(
-      "--segment-indicator-left",
-      `${active.offsetLeft}px`
-    );
-    control.style.setProperty(
-      "--segment-indicator-width",
-      `${active.offsetWidth}px`
+    const targetLeft = active.offsetLeft;
+    const targetWidth = active.offsetWidth;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    if (
+      !animate ||
+      reduceMotion ||
+      !animatedSegmentIndicators.has(indicator) ||
+      !indicator.animate
+    ) {
+      indicator.getAnimations().forEach((animation) => animation.cancel());
+      setSegmentIndicator(control, targetLeft, targetWidth);
+      animatedSegmentIndicators.add(indicator);
+      return;
+    }
+
+    const controlRect = control.getBoundingClientRect();
+    const indicatorRect = indicator.getBoundingClientRect();
+    const fromLeft = indicatorRect.left - controlRect.left + control.scrollLeft;
+    const fromWidth = indicatorRect.width;
+    const distance = targetLeft - fromLeft;
+    const midLeft = fromLeft + distance * 0.42;
+    const midWidth =
+      (fromWidth + targetWidth) / 2 + Math.abs(distance) * 0.5;
+
+    indicator.getAnimations().forEach((animation) => animation.cancel());
+    setSegmentIndicator(control, fromLeft, fromWidth);
+
+    const animation = indicator.animate(
+      [
+        {
+          transform: `translate3d(${fromLeft}px, 0, 0)`,
+          width: `${fromWidth}px`,
+          borderRadius: "6px",
+          offset: 0,
+        },
+        {
+          transform: `translate3d(${midLeft}px, 0, 0)`,
+          width: `${midWidth}px`,
+          borderRadius: "11px",
+          offset: 0.52,
+        },
+        {
+          transform: `translate3d(${targetLeft}px, 0, 0)`,
+          width: `${targetWidth}px`,
+          borderRadius: "6px",
+          offset: 1,
+        },
+      ],
+      {
+        duration: 700,
+        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+        fill: "forwards",
+      }
     );
 
-    if (!control.classList.contains("is-indicator-ready")) {
-      requestAnimationFrame(() => {
-        control.classList.add("is-indicator-ready");
-      });
-    }
+    indicator._liquidAnimation = animation;
+    animation.onfinish = () => {
+      if (indicator._liquidAnimation !== animation) return;
+      animation.cancel();
+      setSegmentIndicator(control, targetLeft, targetWidth);
+      indicator._liquidAnimation = null;
+    };
   }
 
-  function updateSegmentIndicators() {
-    updateSegmentIndicator(themeControl);
-    updateSegmentIndicator(gameControl);
+  function updateSegmentIndicators({ animate = true } = {}) {
+    updateSegmentIndicator(themeControl, { animate });
+    updateSegmentIndicator(gameControl, { animate });
   }
 
   function updateSettingsUI() {
@@ -443,6 +526,24 @@
       );
     });
     updateSegmentIndicators();
+  }
+
+  function setupSettingControlAnimations() {
+    const controls = document.querySelectorAll(
+      "#themeControl .segment, #gameControl .segment, .setting-action"
+    );
+    controls.forEach((control) => {
+      const text = control.textContent || "";
+      control.replaceChildren(
+        ...Array.from(text).map((character, index) => {
+          const span = document.createElement("span");
+          span.className = "setting-control-char";
+          span.style.setProperty("--char-index", String(index));
+          span.textContent = character;
+          return span;
+        })
+      );
+    });
   }
 
   function closeDropdown(dropdown) {
@@ -1166,17 +1267,22 @@
   }
 
   function isUpdateAnnouncement(item) {
-    return item.title.includes("更新公告");
+    return item.title.includes("更新");
   }
 
   function renderAnnouncements() {
     const item = state.announcements.items.find(isUpdateAnnouncement);
+    const notice = state.announcements.warning
+      ? `<div class="announcement-notice">${escapeHtml(
+          state.announcements.warning
+        )}</div>`
+      : "";
     if (!item) {
-      announcementList.innerHTML = '<div class="empty">暂无更新公告</div>';
+      announcementList.innerHTML = `${notice}<div class="empty">暂无更新公告</div>`;
       return;
     }
 
-    announcementList.innerHTML = `<a class="announcement-item" href="${escapeHtml(
+    announcementList.innerHTML = `${notice}<a class="announcement-item" href="${escapeHtml(
       item.url
     )}" target="_blank" rel="noopener">
       <div class="announcement-item-title">${escapeHtml(item.title)}</div>
@@ -1188,20 +1294,32 @@
 
   async function loadAnnouncements() {
     if (state.announcements.loading) return;
+    const game = state.filters.game;
     state.announcements.loading = true;
     announcementList.innerHTML = '<div class="empty">加载中...</div>';
 
     try {
-      const res = await fetch("/api/announcements?limit=20&start=0");
+      const res = await fetch(
+        `/api/announcements?game=${encodeURIComponent(game)}&limit=20&start=0`
+      );
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "加载失败");
+      if (!res.ok) {
+        throw new Error(
+          data.error || "无法连接公告服务器，请检查网络后重试"
+        );
+      }
       state.announcements.total = data.total || 0;
       state.announcements.items = data.items || [];
+      state.announcements.stale = Boolean(data.stale);
+      state.announcements.warning = data.warning || "";
+      state.announcements.game = data.game || game;
       renderAnnouncements();
     } catch (err) {
-      announcementList.innerHTML = `<div class="empty">加载失败：${escapeHtml(
-        err.message
-      )}</div>`;
+      announcementList.innerHTML = `<div class="empty">
+        <strong>公告加载失败</strong>
+        ${escapeHtml(err.message)}
+        <div class="announcement-hint">请检查网络，然后点击右上角刷新重试。</div>
+      </div>`;
     } finally {
       state.announcements.loading = false;
     }
@@ -1277,7 +1395,7 @@
 
   window.addEventListener("resize", () => {
     updateTabIndicator({ animate: false });
-    updateSegmentIndicators();
+    updateSegmentIndicators({ animate: false });
   });
 
   let searchTimer;
@@ -1512,11 +1630,20 @@
 
   settingsBtn.addEventListener("click", () => {
     showDialog(settingsDialog);
-    requestAnimationFrame(updateSegmentIndicators);
+    requestAnimationFrame(() => {
+      updateSegmentIndicators({ animate: false });
+    });
   });
   queryCodesBtn.addEventListener("click", openQueryDialog);
   queryExportBtn.addEventListener("click", exportQueryCodes);
   queryCopyAllBtn.addEventListener("click", copyAllQueryCodes);
+  feedbackBtn.addEventListener("click", () => {
+    window.open(
+      "https://github.com/26434288-a11y/marku-fps-config-code-library/issues/new/choose",
+      "_blank",
+      "noopener,noreferrer"
+    );
+  });
 
   themeControl.addEventListener("click", (event) => {
     const button = event.target.closest("[data-theme-value]");
@@ -1666,8 +1793,9 @@
   confirmCancelBtn.addEventListener("click", () => closeConfirm(false));
 
   loadSettings();
-  applyTheme();
+  applyTheme({ animate: false });
   updateSettingsUI();
+  setupSettingControlAnimations();
   initDropdown(typeFilterDropdown);
   initDropdown(fieldTypeDropdown);
   updateReorderButton();

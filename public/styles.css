@@ -64,6 +64,13 @@
   box-sizing: border-box;
 }
 
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: background-color 0.45s ease, color 0.45s ease,
+    border-color 0.45s ease, box-shadow 0.45s ease !important;
+}
+
 strong {
   font-weight: 400;
 }
@@ -1201,6 +1208,19 @@ button {
 .setting-action {
   width: 100%;
   justify-content: center;
+  gap: 0;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.45s ease;
+}
+
+.setting-action:hover {
+  background: var(--surface);
+  transform: translateY(-2px);
+  box-shadow: 0 9px 20px rgba(16, 24, 40, 0.12);
+}
+
+.setting-action:active {
+  transform: translateY(0) scale(0.985);
 }
 
 .query-result {
@@ -1242,6 +1262,30 @@ button {
   font-weight: 400;
 }
 
+.setting-control-char {
+  display: inline-block;
+}
+
+.segment:hover .setting-control-char,
+.setting-action:hover .setting-control-char {
+  animation: setting-control-bounce 0.63s cubic-bezier(0.22, 1, 0.36, 1)
+    both;
+  animation-delay: calc(var(--char-index) * 42ms);
+}
+
+@keyframes setting-control-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  38% {
+    transform: translateY(-3px);
+  }
+  68% {
+    transform: translateY(1px);
+  }
+}
+
 .segmented {
   position: relative;
   display: flex;
@@ -1249,6 +1293,12 @@ button {
   padding: 4px;
   background: var(--gray-soft);
   border-radius: var(--radius);
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.segmented:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 9px 20px rgba(16, 24, 40, 0.12);
 }
 
 .segment-indicator {
@@ -1265,11 +1315,6 @@ button {
   transform: translate3d(var(--segment-indicator-left, 4px), 0, 0);
 }
 
-.segmented.is-indicator-ready .segment-indicator {
-  transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1),
-    width 0.36s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
 .segment {
   position: relative;
   z-index: 1;
@@ -1281,6 +1326,7 @@ button {
   background: transparent;
   color: var(--muted);
   white-space: nowrap;
+  transition: color 0.3s ease;
 }
 
 .segment:hover {
@@ -1303,6 +1349,21 @@ button {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.announcement-notice {
+  padding: 9px 11px;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 13px;
+}
+
+.announcement-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .announcement-item {
