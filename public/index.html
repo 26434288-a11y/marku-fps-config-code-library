@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>配置码库</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <img class="brand-mark" src="/assets/ak-icon.png" width="22" height="22" alt="">
+        <span class="brand-name">Marku</span>
+      </div>
+      <div class="topbar-actions">
+        <div class="tabs" role="tablist" id="gameTabs">
+          <span class="tab-indicator" aria-hidden="true"></span>
+          <button class="tab is-active" type="button" data-game="暗区突围">暗区突围</button>
+          <button class="tab" type="button" data-game="三角洲行动">三角洲行动</button>
+        </div>
+        <button class="icon-btn" id="settingsBtn" type="button" data-tooltip="设置" aria-label="设置">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" id="mainContent">
+    <div class="view-head">
+      <h1 class="view-title" id="gameTitle">暗区突围</h1>
+      <div class="view-actions">
+        <button class="icon-btn" id="announcementsBtn" type="button" data-tooltip="查看最新公告" aria-label="查看最新公告">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+            <path d="M10 21h4"></path>
+          </svg>
+        </button>
+        <button class="icon-btn" id="reorderBtn" type="button" data-tooltip="调整顺序" aria-label="调整顺序">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m21 16-4 4-4-4M17 20V4M3 8l4-4 4 4M7 4v16"></path>
+          </svg>
+        </button>
+        <button class="icon-btn" id="addBtn" type="button" data-tooltip="新增" aria-label="新增">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="search-row">
+      <div class="search-left">
+        <label class="search">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
+          <span class="search-input-wrap">
+            <input id="searchInput" type="search" placeholder="搜索......" autocomplete="off">
+            <span class="search-mirror" id="searchMirror" aria-hidden="true"></span>
+            <button class="search-clear" id="searchClearBtn" type="button" data-tooltip="清空搜索" aria-label="清空搜索" hidden>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 6 6 18M6 6l12 12"></path>
+              </svg>
+            </button>
+          </span>
+        </label>
+        <div class="dropdown" id="typeFilterDropdown" data-dropdown>
+          <input type="hidden" id="typeFilter" class="dropdown-value" value="">
+          <button class="dropdown-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+            <span class="dropdown-label" data-placeholder="全部类型">全部类型</span>
+            <svg class="dropdown-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m6 9 6 6 6-6"></path>
+            </svg>
+          </button>
+          <div class="dropdown-menu" role="listbox">
+            <button class="dropdown-option is-selected" type="button" role="option" data-value="" aria-selected="true">全部类型</button>
+            <button class="dropdown-option" type="button" role="option" data-value="改枪码" aria-selected="false">改枪码</button>
+            <button class="dropdown-option" type="button" role="option" data-value="配装码" aria-selected="false">配装码</button>
+          </div>
+        </div>
+      </div>
+      <button class="icon-btn" id="settingsCodeBtn" type="button" data-tooltip="设置码" aria-label="设置码">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="21" x2="14" y1="4" y2="4"></line>
+          <line x1="10" x2="3" y1="4" y2="4"></line>
+          <line x1="21" x2="12" y1="12" y2="12"></line>
+          <line x1="8" x2="3" y1="12" y2="12"></line>
+          <line x1="21" x2="16" y1="20" y2="20"></line>
+          <line x1="12" x2="3" y1="20" y2="20"></line>
+          <line x1="14" x2="14" y1="2" y2="6"></line>
+          <line x1="8" x2="8" y1="10" y2="14"></line>
+          <line x1="16" x2="16" y1="18" y2="22"></line>
+        </svg>
+      </button>
+    </div>
+
+    <section id="list" class="list" aria-live="polite"></section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="copy-tip" id="copyTip" role="status" aria-live="polite"></div>
+  <div class="copy-tip hover-tip" id="hoverTip" role="tooltip"></div>
+  <div class="action-tip" id="actionTip" role="status" aria-live="polite"></div>
+
+  <dialog id="detailDialog" class="dialog">
+    <div class="dialog-header">
+      <h2>详情</h2>
+      <button class="icon-btn" type="button" data-close-dialog data-tooltip="关闭" aria-label="关闭">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="dialog-body" id="detailBody"></div>
+    <div class="dialog-footer">
+      <button class="icon-btn" type="button" id="detailEditBtn" data-tooltip="编辑" aria-label="编辑">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+        </svg>
+      </button>
+      <button class="icon-btn danger" type="button" id="detailDeleteBtn" data-tooltip="删除" aria-label="删除">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+        </svg>
+      </button>
+    </div>
+  </dialog>
+
+  <dialog id="formDialog" class="dialog">
+    <div class="dialog-header">
+      <h2 id="formTitle">新增</h2>
+      <button class="icon-btn" type="button" data-close-dialog data-tooltip="关闭" aria-label="关闭">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <form id="entryForm" class="form" novalidate autocomplete="off">
+      <input type="hidden" name="id" id="field-id">
+      <div class="field-row" id="metaRow">
+        <div class="field" id="typeField">
+          <span>类型</span>
+          <div class="dropdown" id="fieldTypeDropdown" data-dropdown>
+            <input type="hidden" name="type" id="field-type" class="dropdown-value" value="">
+            <button class="dropdown-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+              <span class="dropdown-label" data-placeholder="请选择">请选择</span>
+              <svg class="dropdown-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 9 6 6 6-6"></path>
+              </svg>
+            </button>
+            <div class="dropdown-menu" role="listbox">
+              <button class="dropdown-option is-selected" type="button" role="option" data-value="" aria-selected="true">请选择</button>
+              <button class="dropdown-option" type="button" role="option" data-value="改枪码" aria-selected="false">改枪码</button>
+              <button class="dropdown-option" type="button" role="option" data-value="配装码" aria-selected="false">配装码</button>
+            </div>
+          </div>
+        </div>
+        <label class="field">
+          <span>枪械/描述</span>
+          <input name="weapon" id="field-weapon" required maxlength="80" placeholder="例如：QJB201两倍45发" autocomplete="off">
+        </label>
+        <label class="field">
+          <span>价格</span>
+          <div class="input-suffix">
+            <input name="price" id="field-price" inputmode="decimal" placeholder="例如：30" autocomplete="off">
+            <span class="suffix" aria-hidden="true">W</span>
+          </div>
+        </label>
+      </div>
+      <label class="field">
+        <span id="codeLabel">代码</span>
+        <textarea name="code" id="field-code" required rows="1" wrap="off" class="code-single" placeholder="粘贴完整代码" spellcheck="false" autocomplete="off"></textarea>
+      </label>
+      <div class="form-error" id="formError" hidden></div>
+      <div class="dialog-footer form-footer">
+        <button class="icon-btn" type="submit" data-tooltip="保存" aria-label="保存">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 6 9 17l-5-5"></path>
+          </svg>
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="settingsDialog" class="dialog">
+    <div class="dialog-header">
+      <h2>设置</h2>
+      <button class="icon-btn" type="button" data-close-dialog data-tooltip="关闭" aria-label="关闭">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="dialog-body">
+      <div class="setting-group">
+        <div class="setting-label">主题切换</div>
+        <div class="segmented" id="themeControl">
+          <span class="segment-indicator" aria-hidden="true"></span>
+          <button class="segment is-active" type="button" data-theme-value="light">白天</button>
+          <button class="segment" type="button" data-theme-value="dark">黑夜</button>
+        </div>
+      </div>
+      <div class="setting-group">
+        <div class="setting-label">游戏选择</div>
+        <div class="segmented" id="gameControl">
+          <span class="segment-indicator" aria-hidden="true"></span>
+          <button class="segment" type="button" data-game-mode="暗区突围">暗区突围</button>
+          <button class="segment" type="button" data-game-mode="三角洲行动">三角洲行动</button>
+          <button class="segment is-active" type="button" data-game-mode="all">我都玩</button>
+        </div>
+      </div>
+      <div class="setting-group">
+        <div class="setting-label">参数查询</div>
+        <button class="btn setting-action" id="queryCodesBtn" type="button">查询已选游戏配置码</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="queryDialog" class="dialog dialog-wide">
+    <div class="dialog-header">
+      <h2>参数查询</h2>
+      <div class="dialog-header-actions">
+        <button class="icon-btn" id="queryExportBtn" type="button" data-tooltip="导出 TXT" aria-label="导出 TXT">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v12"></path>
+            <path d="m7 10 5 5 5-5"></path>
+            <path d="M5 21h14"></path>
+          </svg>
+        </button>
+        <button class="icon-btn" id="queryCopyAllBtn" type="button" data-tooltip="复制全部" aria-label="复制全部">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        </button>
+        <button class="icon-btn" type="button" data-close-dialog data-tooltip="关闭" aria-label="关闭">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="dialog-body query-dialog-body">
+      <textarea class="query-result" id="queryResult" readonly wrap="off" spellcheck="false"></textarea>
+    </div>
+  </dialog>
+
+  <dialog id="settingsCodeDialog" class="dialog dialog-wide">
+    <div class="dialog-header">
+      <h2 id="settingsCodeTitle">设置码</h2>
+      <button class="icon-btn" type="button" data-close-dialog data-tooltip="关闭" aria-label="关闭">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <form id="settingsCodeForm" class="form settings-code-form" novalidate autocomplete="off">
+      <div class="settings-code-section">
+        <label for="settingsCodeGame">游戏</label>
+        <div class="code-with-copy">
+          <input id="settingsCodeGame" placeholder="粘贴游戏设置码" spellcheck="false" autocomplete="off">
+          <button class="icon-btn" type="button" data-copy-target="settingsCodeGame" data-tooltip="复制" aria-label="复制">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="settings-code-section">
+        <label for="settingsCodeControl">控制</label>
+        <div class="code-with-copy">
+          <input id="settingsCodeControl" placeholder="粘贴控制设置码" spellcheck="false" autocomplete="off">
+          <button class="icon-btn" type="button" data-copy-target="settingsCodeControl" data-tooltip="复制" aria-label="复制">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="settings-code-section">
+        <label for="settingsCodePost">后处理</label>
+        <div class="code-with-copy">
+          <input id="settingsCodePost" placeholder="粘贴后处理设置码" spellcheck="false" autocomplete="off">
+          <button class="icon-btn" type="button" data-copy-target="settingsCodePost" data-tooltip="复制" aria-label="复制">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="form-error" id="settingsCodeError" hidden></div>
+      <div class="dialog-footer form-footer">
+        <button class="icon-btn" id="settingsCodeEditBtn" type="button" data-tooltip="编辑" aria-label="编辑">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+          </svg>
+        </button>
+        <button class="icon-btn" id="settingsCodeSaveBtn" type="submit" data-tooltip="保存" aria-label="保存">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 6 9 17l-5-5"></path>
+          </svg>
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="confirmDialog" class="dialog confirm-dialog">
+    <div class="dialog-header">
+      <h2 id="confirmTitle">确认</h2>
+      <button class="icon-btn" type="button" data-close-dialog data-tooltip="关闭" aria-label="关闭">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="dialog-body">
+      <p class="confirm-message" id="confirmMessage"></p>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn" type="button" id="confirmCancelBtn">取消</button>
+      <button class="btn btn-danger-solid" type="button" id="confirmOkBtn">确定</button>
+    </div>
+  </dialog>
+
+  <dialog id="announcementsDialog" class="dialog dialog-wide">
+    <div class="dialog-header">
+      <h2>最新更新公告</h2>
+      <div class="dialog-header-actions">
+        <button class="icon-btn" id="announcementRefreshBtn" type="button" data-tooltip="刷新" aria-label="刷新">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+            <path d="M21 3v5h-5"></path>
+            <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+            <path d="M3 21v-5h5"></path>
+          </svg>
+        </button>
+        <button class="icon-btn" type="button" data-close-dialog data-tooltip="关闭" aria-label="关闭">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="dialog-body">
+      <div class="announcement-list" id="announcementList"></div>
+    </div>
+  </dialog>
+
+  <script src="/vendor/pinyin-pro.min.js"></script>
+  <script src="/app.js" defer></script>
+</body>
+</html>

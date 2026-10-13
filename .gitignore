@@ -1,0 +1,12 @@
+node_modules/
+runtime/
+Marku-portable/
+Marku-portable.zip
+Marku.exe
+*.log
+
+data/codes.json
+data/settings.json
+
+.DS_Store
+Thumbs.db
