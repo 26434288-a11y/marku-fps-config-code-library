@@ -44,6 +44,12 @@ $env:PORT=8080; node server.js
 
 这两个文件已加入 `.gitignore`，不会上传个人配置。备份时复制整个 `data` 文件夹即可。
 
+## 文档
+
+- [更新日志](CHANGELOG.md)
+- [常见问题](FAQ.md)
+- [MIT License](LICENSE)
+
 ## 安全
 
 当前版本没有账号和权限控制，适合在可信的局域网或私人环境中使用。不要直接将服务暴露到公网。
