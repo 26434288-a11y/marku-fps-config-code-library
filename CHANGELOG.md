@@ -2,6 +2,17 @@
 
 本项目的重要更新记录在此文件中。
 
+## [1.1.2] - 2026-10-14
+
+### Added
+
+- README、FAQ 和便携包新增 Windows SmartScreen“未知发布者”处理说明
+- 增加 `WINDOWS-SMARTSCREEN.txt` 中英文运行提示
+
+### Downloads
+
+- [Marku v1.1.2](https://github.com/26434288-a11y/marku-fps-config-code-library/releases/tag/v1.1.2)
+
 ## [1.1.1] - 2026-10-14
 
 ### Changed

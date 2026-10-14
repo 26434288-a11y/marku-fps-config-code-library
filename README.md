@@ -23,6 +23,18 @@
 
 [下载最新版本](https://github.com/26434288-a11y/marku-fps-config-code-library/releases/latest)
 
+## Windows 首次运行提示
+
+Marku 当前没有购买代码签名证书，因此 Windows SmartScreen 可能显示“未知发布者”或“Windows 已保护你的电脑”。
+
+如果出现该提示：
+
+1. 点击“更多信息”。
+2. 点击“仍要运行”。
+3. 如果随后出现用户账户控制，选择“是”。
+
+请只从本项目的 GitHub Releases 页面下载文件，不要全局关闭 Windows Defender。详细说明见 [WINDOWS-SMARTSCREEN.txt](WINDOWS-SMARTSCREEN.txt)。
+
 ## 运行
 
 需要 Node.js 18 或更高版本。

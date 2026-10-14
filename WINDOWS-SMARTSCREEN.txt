@@ -1,0 +1,42 @@
+Marku Windows First-Run Notice
+Marku Windows 首次运行提示
+
+Marku is free and open-source software. The current release does not have a
+paid code-signing certificate, so Windows SmartScreen may display a
+"Windows protected your PC" or "Unknown publisher" warning.
+
+Marku 是免费开源软件。当前版本没有购买代码签名证书，因此 Windows
+SmartScreen 可能显示“Windows 已保护你的电脑”或“未知发布者”提示。
+
+How to run / 运行方法
+
+1. Download Marku-Code-Library.zip only from the official GitHub Releases page.
+   只从官方 GitHub Releases 页面下载 Marku-Code-Library.zip。
+
+2. Extract the entire archive before running Marku.exe.
+   运行 Marku.exe 前请先完整解压压缩包。
+
+3. If SmartScreen appears, click "More info", then click "Run anyway".
+   如果出现 SmartScreen，请点击“更多信息”，然后点击“仍要运行”。
+
+4. If Windows User Account Control appears, choose "Yes".
+   如果出现 Windows 用户账户控制，请选择“是”。
+
+5. If you cannot find "Run anyway", close the warning and download the file
+   again from the official release page.
+   如果找不到“仍要运行”，请关闭提示并从官方 Release 页面重新下载。
+
+Important / 重要说明
+
+- Do not disable Windows Defender globally.
+  不要全局关闭 Windows Defender。
+
+- Only run files downloaded from the official project release page.
+  只运行从项目官方 Release 页面下载的文件。
+
+- This warning means the publisher identity is not signed. It does not by
+  itself prove that the file is safe or unsafe.
+  该提示表示文件没有可验证的发布者签名，不能单独证明文件安全或不安全。
+
+Official repository / 官方仓库
+https://github.com/26434288-a11y/marku-fps-config-code-library
