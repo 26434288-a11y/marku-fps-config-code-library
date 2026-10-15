@@ -914,6 +914,19 @@ button {
   }
 }
 
+@keyframes icon-folder-save {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  42% {
+    transform: translateY(3px) scale(0.96);
+  }
+  72% {
+    transform: translateY(-1px) scale(1.03);
+  }
+}
+
 #settingsBtn:hover svg {
   transform: rotate(60deg);
 }
@@ -951,6 +964,14 @@ button {
 
 #queryExportBtn:hover svg {
   transform: translateY(2px);
+}
+
+#queryBackupBtn:hover svg {
+  animation: icon-folder-save 0.45s ease;
+}
+
+#queryCopyAllBtn:hover svg {
+  transform: scale(1.15);
 }
 
 [data-action="edit"]:hover svg,
@@ -1019,6 +1040,7 @@ button {
   margin: 0;
   color: var(--text);
   line-height: 1.6;
+  white-space: pre-line;
 }
 
 .dialog::backdrop {
@@ -1074,6 +1096,24 @@ button {
   .search-clear svg {
     transition: none;
     animation: none;
+  }
+
+  #queryBackupBtn:hover svg {
+    animation: none;
+  }
+
+  #queryCopyAllBtn svg {
+    transition: none;
+  }
+
+  .import-scope-option:has(input:checked),
+  .import-scope-option input:checked + .import-radio-visual,
+  .import-scope-option input:checked + .import-radio-visual::after {
+    animation: none;
+  }
+
+  .import-radio-visual {
+    transition: none;
   }
 
   .segment-indicator {
@@ -1150,6 +1190,134 @@ button {
 
 .setting-action:active {
   transform: translateY(0) scale(0.985);
+}
+
+.import-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.import-scope-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.import-scope-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.import-scope-option:hover {
+  box-shadow: 0 8px 18px rgba(16, 24, 40, 0.12);
+}
+
+:root[data-theme="dark"] .import-scope-option:hover {
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+}
+
+.import-scope-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.import-radio-visual {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border: 1.5px solid var(--muted);
+  border-radius: 50%;
+  transition: border-color 0.22s ease;
+}
+
+.import-radio-visual::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text);
+  opacity: 0;
+  transform: scale(0);
+}
+
+.import-scope-label {
+  font-size: 13px;
+}
+
+.import-scope-option:has(input:checked) {
+  border-color: var(--text);
+  animation: import-scope-select 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.import-scope-option input:checked + .import-radio-visual {
+  border-color: var(--text);
+  animation: import-radio-ring 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.import-scope-option input:checked + .import-radio-visual::after {
+  opacity: 1;
+  transform: scale(1);
+  animation: import-radio-dot 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.import-scope-option input:focus-visible + .import-radio-visual {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+@keyframes import-scope-select {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.012);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes import-radio-ring {
+  0% {
+    transform: scale(0.82);
+  }
+  55% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes import-radio-dot {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  62% {
+    opacity: 1;
+    transform: scale(1.22);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .query-result {
@@ -1289,6 +1457,24 @@ button {
   font-size: 13px;
 }
 
+.announcement-cache {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.announcement-cache::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--warning);
+}
+
 .announcement-hint {
   margin-top: 6px;
   font-size: 12px;
@@ -1376,6 +1562,7 @@ button {
 
 #detailDialog .dialog-header h2,
 #settingsDialog .dialog-header h2,
+#importDialog .dialog-header h2,
 #settingsCodeDialog .dialog-header h2,
 #formDialog .dialog-header h2,
 #confirmDialog .dialog-header h2,

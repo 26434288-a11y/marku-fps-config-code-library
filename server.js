@@ -3,6 +3,10 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { randomUUID } = require('crypto');
+const { execFile } = require('child_process');
+const { promisify } = require('util');
+
+const execFileAsync = promisify(execFile);
 
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -10,6 +14,7 @@ const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const DATA_FILE = path.join(ROOT, 'data', 'codes.json');
 const SETTINGS_FILE = path.join(ROOT, 'data', 'settings.json');
+const DATA_DIR = path.dirname(DATA_FILE);
 const ANNOUNCEMENT_CACHE_FILE = path.join(
   ROOT,
   'data',
@@ -33,6 +38,14 @@ const MIME = {
 
 const GAMES = ['暗区突围', '三角洲行动'];
 const TYPES = ['改枪码', '配装码'];
+const GAME_LABELS = {
+  暗区突围: '暗区突围：无限',
+  三角洲行动: '三角洲行动',
+};
+
+function gameLabel(game) {
+  return GAME_LABELS[game] || game;
+}
 
 let codes = loadCodes();
 let settings = loadSettings();
@@ -73,6 +86,181 @@ function loadSettings() {
 function saveSettings() {
   fs.mkdirSync(path.dirname(SETTINGS_FILE), { recursive: true });
   fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2) + '\n');
+}
+
+function refreshCodesFromDisk() {
+  if (!fs.existsSync(DATA_FILE)) return;
+  try {
+    codes = loadCodes();
+  } catch (error) {
+    console.error('读取 codes.json 失败，继续使用内存数据:', error.message);
+  }
+}
+
+function refreshSettingsFromDisk() {
+  if (!fs.existsSync(SETTINGS_FILE)) return;
+  try {
+    settings = loadSettings();
+  } catch (error) {
+    console.error('读取 settings.json 失败，继续使用内存数据:', error.message);
+  }
+}
+
+function backupFilePayloads() {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  return fs
+    .readdirSync(DATA_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => {
+      const content = fs.readFileSync(path.join(DATA_DIR, entry.name));
+      const extension = path.extname(entry.name).toLowerCase();
+      const type =
+        extension === '.json'
+          ? 'application/json'
+          : extension === '.md'
+          ? 'text/markdown'
+          : extension === '.txt'
+          ? 'text/plain'
+          : 'application/octet-stream';
+      return {
+        name: entry.name,
+        type,
+        size: content.length,
+        content: content.toString('base64'),
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+async function chooseWindowsBackupDirectory() {
+  if (process.platform !== 'win32') {
+    const error = new Error('当前系统不支持原生文件夹选择');
+    error.statusCode = 501;
+    throw error;
+  }
+
+  const script = `
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Add-Type -AssemblyName System.Windows.Forms
+$owner = New-Object System.Windows.Forms.Form
+$owner.ShowInTaskbar = $false
+$owner.StartPosition = 'CenterScreen'
+$owner.TopMost = $true
+$owner.Size = New-Object System.Drawing.Size(1, 1)
+$owner.Opacity = 0
+$dialog = New-Object System.Windows.Forms.FolderBrowserDialog
+$dialog.Description = '选择 Marku data 备份位置'
+$dialog.ShowNewFolderButton = $true
+$result = $dialog.ShowDialog($owner)
+$owner.Dispose()
+if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
+  [Console]::Out.Write($dialog.SelectedPath)
+}
+`;
+
+  try {
+    const { stdout } = await execFileAsync(
+      'powershell.exe',
+      ['-NoProfile', '-STA', '-Command', script],
+      {
+        encoding: 'utf8',
+        windowsHide: false,
+        maxBuffer: 1024 * 1024,
+        timeout: 30000,
+      }
+    );
+    return String(stdout || '').trim();
+  } catch (error) {
+    error.statusCode = 501;
+    throw error;
+  }
+}
+
+function copyDataBackup(targetDirectory) {
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\..+/, '');
+  const backupRoot = path.join(
+    targetDirectory,
+    `Marku-data-${timestamp}`
+  );
+  const destination = path.join(backupRoot, 'data');
+  fs.mkdirSync(destination, { recursive: true });
+
+  const files = [];
+  for (const entry of fs.readdirSync(DATA_DIR, { withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    fs.copyFileSync(
+      path.join(DATA_DIR, entry.name),
+      path.join(destination, entry.name)
+    );
+    files.push(entry.name);
+  }
+  return {
+    destination,
+    files: files.sort((a, b) => a.localeCompare(b)),
+  };
+}
+
+function isLocalRequest(req) {
+  const remoteAddress = String(req.socket.remoteAddress || '');
+  return ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(remoteAddress);
+}
+
+function findMarkuHelper() {
+  const candidates = [
+    path.join(ROOT, '.build', 'Marku.exe'),
+    path.join(ROOT, 'Marku.exe'),
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate)) || '';
+}
+
+async function openExplorerLocation(target) {
+  const helper = findMarkuHelper();
+  if (helper) {
+    await execFileAsync(helper, ['--open-location', target], {
+      windowsHide: true,
+      timeout: 10000,
+      encoding: 'utf8',
+    });
+    return;
+  }
+
+  const script = `
+$shell = New-Object -ComObject Shell.Application
+$shell.Explore($env:MARKU_LOCATION)
+Start-Sleep -Milliseconds 350
+$windows = $shell.Windows()
+if ($windows.Count -gt 0) {
+  $window = $windows.Item($windows.Count - 1)
+  $window.Visible = $true
+  Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public static class MarkuWindow {
+  [DllImport("user32.dll")]
+  public static extern bool SetForegroundWindow(IntPtr hWnd);
+}
+"@
+  [MarkuWindow]::SetForegroundWindow([IntPtr]$window.HWND) | Out-Null
+}
+`;
+
+  await execFileAsync(
+    'powershell.exe',
+    ['-NoProfile', '-STA', '-Command', script],
+    {
+      encoding: 'utf8',
+      windowsHide: true,
+      maxBuffer: 1024 * 1024,
+      timeout: 10000,
+      env: {
+        ...process.env,
+        MARKU_LOCATION: target,
+      },
+    }
+  );
 }
 
 function normalizeText(value) {
@@ -345,7 +533,58 @@ async function readJson(req) {
 async function handleApi(req, res, pathname, url) {
   try {
     if (req.method === 'GET' && pathname === '/api/codes') {
+      refreshCodesFromDisk();
       sendJson(res, 200, { items: sortCodes(codes) });
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/backup') {
+      if (!isLocalRequest(req)) {
+        return sendJson(res, 403, {
+          error: 'data 文件夹备份只能在本机操作',
+        });
+      }
+      const targetDirectory = await chooseWindowsBackupDirectory();
+      if (!targetDirectory) {
+        return sendJson(res, 200, { cancelled: true });
+      }
+      const result = copyDataBackup(targetDirectory);
+      return sendJson(res, 200, {
+        cancelled: false,
+        ...result,
+      });
+    }
+
+    if (req.method === 'POST' && pathname === '/api/open-location') {
+      if (!isLocalRequest(req)) {
+        return sendJson(res, 403, {
+          error: '打开文件位置只能在本机操作',
+        });
+      }
+      if (process.platform !== 'win32') {
+        return sendJson(res, 501, {
+          error: '当前系统不支持打开文件位置',
+        });
+      }
+
+      try {
+        await openExplorerLocation(ROOT);
+      } catch {
+        return sendJson(res, 500, {
+          error: '无法打开文件所在位置',
+        });
+      }
+      return sendJson(res, 200, { ok: true, path: ROOT });
+    }
+
+    if (req.method === 'GET' && pathname === '/api/backup') {
+      const files = backupFilePayloads();
+
+      sendJson(res, 200, {
+        folder: 'data',
+        generatedAt: new Date().toISOString(),
+        files,
+      });
       return;
     }
 
@@ -406,7 +645,157 @@ async function handleApi(req, res, pathname, url) {
       return;
     }
 
+    if (req.method === 'POST' && pathname === '/api/import') {
+      const input = await readJson(req);
+      const scope = ['delta', 'arenaCodes', 'arenaSettings', 'all'].includes(
+        input.scope
+      )
+        ? input.scope
+        : 'all';
+      const incoming = Array.isArray(input.items) ? input.items : [];
+      const settingsInput =
+        input.settings && typeof input.settings === 'object'
+          ? input.settings
+          : {};
+
+      if (!incoming.length && !Object.keys(settingsInput).length) {
+        return sendJson(res, 400, { error: '没有可导入的内容' });
+      }
+      if (incoming.length > 5000) {
+        return sendJson(res, 400, { error: '单次最多导入 5000 条配置码' });
+      }
+
+      const imported = new Map();
+      const errors = [];
+      incoming.forEach((raw, index) => {
+        const { errors: entryErrors, entry } = validateEntry(raw);
+        if (entryErrors.length) {
+          errors.push(`第 ${index + 1} 条：${entryErrors.join('；')}`);
+          return;
+        }
+        if (scope === 'delta' && entry.game !== '三角洲行动') {
+          errors.push(`第 ${index + 1} 条：不是三角洲行动改枪码`);
+          return;
+        }
+        if (scope === 'arenaCodes' && entry.game !== '暗区突围') {
+          errors.push(`第 ${index + 1} 条：不是暗区突围配置码`);
+          return;
+        }
+        const key = `${entry.game}\u0000${entry.code}`;
+        if (imported.has(key)) {
+          errors.push(`第 ${index + 1} 条：配置码重复`);
+          return;
+        }
+        imported.set(key, entry);
+      });
+      if (errors.length) {
+        return sendJson(res, 400, {
+          error: '导入数据包含无效条目',
+          errors,
+        });
+      }
+
+      if (scope === 'arenaSettings') {
+        if (imported.size) {
+          return sendJson(res, 400, { error: '设置码导入不能包含配置码' });
+        }
+        if (!Object.keys(settingsInput).length) {
+          return sendJson(res, 400, { error: '没有可导入的设置码' });
+        }
+      } else if (scope === 'arenaCodes' && !imported.size) {
+        return sendJson(res, 400, { error: '没有可导入的暗区突围配置码' });
+      } else if (scope === 'delta' && !imported.size) {
+        return sendJson(res, 400, { error: '没有可导入的三角洲行动改枪码' });
+      }
+
+      if (
+        scope !== 'all' &&
+        scope !== 'arenaSettings' &&
+        Object.keys(settingsInput).length
+      ) {
+        return sendJson(res, 400, { error: '当前导入范围不接受设置码' });
+      }
+
+      const overwrite = input.overwrite === true;
+      const currentScopeCount =
+        scope === 'delta'
+          ? codes.filter((item) => item.game === '三角洲行动').length
+          : scope === 'arenaCodes'
+          ? codes.filter((item) => item.game === '暗区突围').length
+          : scope === 'arenaSettings'
+          ? Object.values(settings).filter(Boolean).length
+          : codes.length;
+      if (currentScopeCount && !overwrite) {
+        return sendJson(res, 409, {
+          error: '导入会覆盖当前范围内的数据，请确认后重试',
+          previousCount: currentScopeCount,
+        });
+      }
+
+      const previousCount = codes.length;
+      const now = new Date().toISOString();
+      let added = imported.size;
+      let settingsUpdated = false;
+
+      if (scope !== 'arenaSettings') {
+        const nextOrders = new Map();
+        const importedCodes = [...imported.values()].map((entry) => {
+          const order = nextOrders.get(entry.game) || 0;
+          nextOrders.set(entry.game, order + 1);
+          return {
+            id: randomUUID(),
+            ...entry,
+            order,
+            createdAt: now,
+            updatedAt: now,
+          };
+        });
+
+        if (scope === 'all') {
+          codes = importedCodes;
+        } else if (scope === 'delta') {
+          codes = [
+            ...codes.filter((item) => item.game !== '三角洲行动'),
+            ...importedCodes,
+          ];
+        } else if (scope === 'arenaCodes') {
+          codes = [
+            ...codes.filter((item) => item.game !== '暗区突围'),
+            ...importedCodes,
+          ];
+        }
+        saveCodes();
+      }
+
+      if (scope === 'all' || scope === 'arenaSettings') {
+        settings = {
+          gameCode: String(
+            settingsInput.gameCode == null ? '' : settingsInput.gameCode
+          ),
+          controlCode: String(
+            settingsInput.controlCode == null ? '' : settingsInput.controlCode
+          ),
+          postCode: String(
+            settingsInput.postCode == null ? '' : settingsInput.postCode
+          ),
+        };
+        saveSettings();
+        settingsUpdated = true;
+      }
+
+      sendJson(res, 200, {
+        added,
+        previousCount,
+        scope,
+        overwritten: previousCount > 0 && added > 0,
+        settingsUpdated,
+        settings,
+      });
+      return;
+    }
+
     if (req.method === 'GET' && pathname === '/api/settings') {
+      refreshSettingsFromDisk();
       sendJson(res, 200, { item: settings });
       return;
     }
@@ -464,7 +853,7 @@ async function handleApi(req, res, pathname, url) {
             cached: true,
             stale: true,
             game,
-            warning: `网络连接失败，当前显示上次缓存的${game}公告`,
+            warning: `网络连接失败，当前显示上次缓存的${gameLabel(game)}公告`,
           });
         }
         return sendJson(res, 502, {

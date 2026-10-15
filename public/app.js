@@ -6,12 +6,14 @@
     currentId: null,
     formGame: "暗区突围",
     settingsCodeMode: "view",
+    importScope: "",
     reorderMode: false,
     switchToken: 0,
     contentEnterTimer: null,
     resultsAnimationTimer: null,
     formSnapshot: "",
     settingsCodeSnapshot: "",
+    codesSignature: "",
     announcements: {
       items: [],
       total: 0,
@@ -76,8 +78,17 @@
   const themeControl = $("#themeControl");
   const gameControl = $("#gameControl");
   const queryCodesBtn = $("#queryCodesBtn");
+  const importCodesBtn = $("#importCodesBtn");
+  const importDialog = $("#importDialog");
+  const importSelectFileBtn = $("#importSelectFileBtn");
+  const importCodesFile = $("#importCodesFile");
+  const openLocationBtn = $("#openLocationBtn");
+  const importScopeInputs = document.querySelectorAll(
+    'input[name="importScope"]'
+  );
   const queryDialog = $("#queryDialog");
   const queryResult = $("#queryResult");
+  const queryBackupBtn = $("#queryBackupBtn");
   const queryExportBtn = $("#queryExportBtn");
   const queryCopyAllBtn = $("#queryCopyAllBtn");
   const feedbackBtn = $("#feedbackBtn");
@@ -132,6 +143,15 @@
     "后处理设置码",
   ];
 
+  const GAME_LABELS = {
+    暗区突围: "暗区突围：无限",
+    三角洲行动: "三角洲行动",
+  };
+
+  function gameLabel(game) {
+    return GAME_LABELS[game] || game;
+  }
+
   function escapeHtml(value) {
     return String(value == null ? "" : value)
       .replace(/&/g, "&amp;")
@@ -147,6 +167,9 @@
 
   let toastTimer;
   function showToast(message) {
+    const openDialogs = [...document.querySelectorAll("dialog[open]")];
+    const host = openDialogs.at(-1) || document.body;
+    if (toast.parentElement !== host) host.appendChild(toast);
     toast.textContent = message;
     toast.classList.add("show");
     clearTimeout(toastTimer);
@@ -352,10 +375,20 @@
     dialog.focus({ preventScroll: true });
   }
 
+  function openImportDialog() {
+    state.importScope = "";
+    importScopeInputs.forEach((input) => {
+      input.checked = false;
+    });
+    importCodesFile.value = "";
+    showDialog(importDialog);
+  }
+
   function showConfirm(message, options = {}) {
     confirmTitle.textContent = options.title || "确认";
     confirmMessage.textContent = message;
     confirmOkBtn.textContent = options.okText || "确定";
+    confirmCancelBtn.hidden = Boolean(options.hideCancel);
     return new Promise((resolve) => {
       confirmResolve = resolve;
       showDialog(confirmDialog, confirmOkBtn);
@@ -695,7 +728,7 @@
       if (state.switchToken !== token) return;
     }
 
-    gameTitle.textContent = game;
+    gameTitle.textContent = gameLabel(game);
     const isArena = game === "暗区突围";
     typeFilterDropdown.hidden = !isArena;
     settingsCodeBtn.hidden = !isArena;
@@ -750,20 +783,41 @@
     });
   }
 
-  async function loadCodes() {
+  async function loadCodes({ notifyExternalChange = false } = {}) {
     try {
       const res = await fetch("/api/codes");
       if (!res.ok) throw new Error("服务器返回错误");
       const data = await res.json();
-      state.codes = (data.items || []).filter(
+      const items = (data.items || []).filter(
         (item) => !SETTINGS_TYPES.includes(item.type)
       );
+      const signature = JSON.stringify(items);
+      if (signature === state.codesSignature) return false;
+
+      state.codes = items;
+      state.codesSignature = signature;
       render();
+      if (notifyExternalChange) {
+        showToast("检测到 data 更新，列表已刷新");
+      }
+      return true;
     } catch (err) {
       listEl.innerHTML = `<div class="empty"><strong>加载失败</strong>${escapeHtml(
         err.message
       )}</div>`;
+      return false;
     }
+  }
+
+  async function pollDataChanges() {
+    if (
+      document.hidden ||
+      state.reorderMode ||
+      document.querySelector("dialog[open]")
+    ) {
+      return;
+    }
+    await loadCodes({ notifyExternalChange: true });
   }
 
   function canReorder() {
@@ -1049,7 +1103,7 @@
       blocks.push(codeLines.join("\n\n"));
     }
 
-    return `${game}\n\n${divider}\n\n${
+    return `${gameLabel(game)}\n\n${divider}\n\n${
       blocks.length ? blocks.join("\n\n") : "暂无配置码"
     }`;
   }
@@ -1066,6 +1120,191 @@
         buildQuerySection(game, buildGameQueryLines(game), settingLines)
       )
       .join("\n\n\n");
+  }
+
+  function validateImportScope(parsed, scope) {
+    const errors = [];
+    const warnings = [];
+    const itemCount = parsed.items.length;
+    const settingCount = Object.keys(parsed.settings).length;
+    const hasDelta = parsed.items.some(
+      (item) => item.game === "三角洲行动"
+    );
+    const hasArenaCodes = parsed.items.some(
+      (item) => item.game === "暗区突围"
+    );
+    const hasArenaSettings = settingCount > 0;
+
+    if (scope === "delta") {
+      if (!itemCount || !hasDelta) {
+        errors.push("未识别到三角洲行动改枪码");
+      }
+      if (hasArenaCodes) {
+        errors.push("当前导入范围不允许包含暗区突围配置码");
+      }
+      if (hasArenaSettings) {
+        errors.push("当前导入范围不允许包含暗区突围设置码");
+      }
+    } else if (scope === "arenaCodes") {
+      if (!itemCount || !hasArenaCodes) {
+        errors.push("未识别到暗区突围配装/改枪码");
+      }
+      if (hasDelta) {
+        errors.push("当前导入范围不允许包含三角洲行动改枪码");
+      }
+      if (hasArenaSettings) {
+        errors.push("当前导入范围不允许包含暗区突围设置码");
+      }
+    } else if (scope === "arenaSettings") {
+      if (itemCount) {
+        errors.push("当前导入范围不允许包含配置码");
+      }
+      if (!hasArenaSettings) {
+        errors.push("未识别到暗区突围设置码");
+      }
+    } else if (scope === "all") {
+      if (!hasDelta) {
+        warnings.push(
+          "“全部配置码”导入缺少三角洲行动改枪码。\n如继续导入，该分类将被覆盖为空白。"
+        );
+      }
+      if (!hasArenaCodes) {
+        warnings.push(
+          "“全部配置码”导入缺少暗区突围配装/改枪码。\n如继续导入，该分类将被覆盖为空白。"
+        );
+      }
+      if (!hasArenaSettings) {
+        warnings.push(
+          "“全部配置码”导入缺少暗区突围设置码。\n如继续导入，设置码将被覆盖为空白。"
+        );
+      }
+    } else {
+      errors.push("未知的导入范围");
+    }
+
+    return { errors, warnings };
+  }
+
+  async function handleImportFile(file) {
+    if (!file) return;
+
+    let parsed;
+    try {
+      parsed = window.MarkuImportParser.parseImportText(await file.text());
+    } catch {
+      showToast("无法读取文件");
+      return;
+    }
+
+    if (parsed.issues.length) {
+      const details = parsed.issues
+        .slice(0, 8)
+        .map(({ line, message, text }) => {
+          const preview =
+            text.length > 90 ? `${text.slice(0, 87)}...` : text;
+          return `第 ${line} 行：${message}\n${preview}`;
+        })
+        .join("\n\n");
+      const remaining =
+        parsed.issues.length > 8
+          ? `\n\n另有 ${parsed.issues.length - 8} 处问题未显示。`
+          : "";
+      await showConfirm(
+        `校验未通过，未导入任何数据。\n\n${details}${remaining}\n\n支持带游戏分区的 Marku TXT，也支持直接按代码格式识别；暗区代码需带“改枪- / 配装- / 游戏- / 控制- / 后处理-”前缀，三角洲代码需包含“枪械-模式-代码”结构。`,
+        {
+          title: "导入检查失败",
+          okText: "知道了",
+          hideCancel: true,
+        }
+      );
+      return;
+    }
+
+    const scope = state.importScope;
+    const scopeValidation = validateImportScope(parsed, scope);
+    if (scopeValidation.errors.length) {
+      await showConfirm(
+        `导入范围不匹配，未导入任何数据。\n\n${scopeValidation.errors.join(
+          "\n"
+        )}`,
+        {
+          title: "导入检查失败",
+          okText: "知道了",
+          hideCancel: true,
+        }
+      );
+      return;
+    }
+
+    const [codesResponse, settingsResponse] = await Promise.all([
+      api("/api/codes"),
+      api("/api/settings"),
+    ]);
+    const codesData = await codesResponse.json().catch(() => ({}));
+    const settingsData = await settingsResponse.json().catch(() => ({}));
+    if (!codesResponse.ok || !settingsResponse.ok) {
+      showToast(
+        codesData.error || settingsData.error || "无法读取当前配置"
+      );
+      return;
+    }
+
+    const currentItems = Array.isArray(codesData.items) ? codesData.items : [];
+    const currentSettings = settingsData.item || {};
+    const currentCount =
+      scope === "delta"
+        ? currentItems.filter((item) => item.game === "三角洲行动").length
+        : scope === "arenaCodes"
+        ? currentItems.filter((item) => item.game === "暗区突围").length
+        : scope === "arenaSettings"
+        ? Object.values(currentSettings).filter(Boolean).length
+        : currentItems.length;
+    const itemCount = parsed.items.length;
+    const settingCount = Object.keys(parsed.settings).length;
+    const scopeLabels = {
+      delta: "三角洲行动改枪码",
+      arenaCodes: "暗区突围配装/改枪码",
+      arenaSettings: "暗区突围设置码",
+      all: "全部配置码",
+    };
+    const warningText = scopeValidation.warnings.length
+      ? `\n\n${scopeValidation.warnings.join("\n\n")}`
+      : "";
+
+    const confirmed = await showConfirm(
+      `检查通过，导入范围：${scopeLabels[scope]}。\n\n将写入 ${itemCount} 条配置码和 ${settingCount} 项设置码。\n当前范围已有 ${currentCount} 项数据，导入会覆盖当前范围。${warningText}\n\n是否继续？`,
+      {
+        title: "确认导入",
+        okText: "确认导入",
+      }
+    );
+    if (!confirmed) return;
+
+    try {
+      const response = await api("/api/import", {
+        method: "POST",
+        body: JSON.stringify({
+          items: parsed.items,
+          settings: parsed.settings,
+          scope,
+          overwrite: true,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "导入失败");
+      }
+
+      await loadCodes();
+      if (importDialog.open) importDialog.close();
+      showToast(
+        `导入完成：${scopeLabels[scope]}，写入 ${data.added} 条配置码${
+          data.settingsUpdated ? "，设置码已更新" : ""
+        }`
+      );
+    } catch (error) {
+      showToast(error.message || "导入失败");
+    }
   }
 
   let queryRequestToken = 0;
@@ -1101,6 +1340,131 @@
       showCopyTip(queryCopyAllBtn, "已复制全部配置码");
     } else {
       showToast("复制失败，请手动选择");
+    }
+  }
+
+  function downloadBackupBundle(data) {
+    const stamp = new Date()
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\..+/, "");
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Marku-data-backup-${stamp}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function backupDataFolder() {
+    if (queryBackupBtn.disabled) return;
+    queryBackupBtn.disabled = true;
+    queryBackupBtn.dataset.tooltip = "请选择备份位置";
+    showToast("正在打开文件夹选择器...");
+
+    try {
+      const nativeResponse = await fetch("/api/backup", {
+        method: "POST",
+      });
+      if (nativeResponse.ok) {
+        const nativeData = await nativeResponse.json().catch(() => ({}));
+        if (!nativeData.cancelled) {
+          showToast(`data 备份完成：${nativeData.destination}`);
+        }
+        return;
+      }
+      if (nativeResponse.status !== 501) {
+        const nativeData = await nativeResponse.json().catch(() => ({}));
+        throw new Error(nativeData.error || "备份失败");
+      }
+
+      const response = await fetch("/api/backup");
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !Array.isArray(data.files)) {
+        throw new Error(data.error || "读取备份数据失败");
+      }
+
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[-:]/g, "")
+        .replace(/\..+/, "");
+
+      if (window.showDirectoryPicker) {
+        try {
+          const parent = await window.showDirectoryPicker({
+            mode: "readwrite",
+          });
+          const backupRoot = await parent.getDirectoryHandle(
+            `Marku-data-${timestamp}`,
+            { create: true }
+          );
+          const folder = await backupRoot.getDirectoryHandle("data", {
+            create: true,
+          });
+
+          for (const file of data.files) {
+            if (
+              !file ||
+              typeof file.name !== "string" ||
+              file.name.includes("/") ||
+              file.name.includes("\\")
+            ) {
+              continue;
+            }
+            const handle = await folder.getFileHandle(file.name, {
+              create: true,
+            });
+            const writable = await handle.createWritable();
+            const binary = atob(String(file.content || ""));
+            const bytes = new Uint8Array(binary.length);
+            for (let index = 0; index < binary.length; index += 1) {
+              bytes[index] = binary.charCodeAt(index);
+            }
+            await writable.write(bytes);
+            await writable.close();
+          }
+
+          showActionTip(queryBackupBtn, "已备份");
+          showToast(`data 文件夹备份完成，共 ${data.files.length} 个文件`);
+          return;
+        } catch (error) {
+          if (error && error.name === "AbortError") return;
+        }
+      }
+
+      downloadBackupBundle(data);
+      showToast("浏览器不支持选择文件夹，已下载 JSON 格式备份");
+    } catch (error) {
+      showToast(error.message || "备份失败");
+    } finally {
+      queryBackupBtn.disabled = false;
+      queryBackupBtn.dataset.tooltip = "备份 data 文件夹";
+    }
+  }
+
+  async function openFileLocation() {
+    if (openLocationBtn.disabled) return;
+    openLocationBtn.disabled = true;
+    showToast("正在打开文件所在位置...");
+
+    try {
+      const response = await fetch("/api/open-location", {
+        method: "POST",
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "无法打开文件所在位置");
+      }
+      showToast("已打开文件所在位置");
+    } catch (error) {
+      showToast(error.message || "无法打开文件所在位置");
+    } finally {
+      openLocationBtn.disabled = false;
     }
   }
 
@@ -1262,11 +1626,14 @@
 
   function renderAnnouncements() {
     const item = state.announcements.items.find(isUpdateAnnouncement);
-    const notice = state.announcements.warning
-      ? `<div class="announcement-notice">${escapeHtml(
-          state.announcements.warning
-        )}</div>`
-      : "";
+    const notice =
+      item && (state.announcements.stale || state.announcements.warning)
+        ? '<div class="announcement-cache">离线缓存 · 正在显示上次获取的公告</div>'
+        : state.announcements.warning
+        ? `<div class="announcement-notice">${escapeHtml(
+            state.announcements.warning
+          )}</div>`
+        : "";
     if (!item) {
       announcementList.innerHTML = `${notice}<div class="empty">暂无更新公告</div>`;
       return;
@@ -1624,6 +1991,26 @@
     });
   });
   queryCodesBtn.addEventListener("click", openQueryDialog);
+  importCodesBtn.addEventListener("click", openImportDialog);
+  importScopeInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      if (input.checked) state.importScope = input.value;
+    });
+  });
+  importSelectFileBtn.addEventListener("click", () => {
+    if (!state.importScope) {
+      showToast("请先选择导入范围");
+      return;
+    }
+    importCodesFile.click();
+  });
+  importCodesFile.addEventListener("change", async () => {
+    const file = importCodesFile.files && importCodesFile.files[0];
+    await handleImportFile(file);
+    importCodesFile.value = "";
+  });
+  openLocationBtn.addEventListener("click", openFileLocation);
+  queryBackupBtn.addEventListener("click", backupDataFolder);
   queryExportBtn.addEventListener("click", exportQueryCodes);
   queryCopyAllBtn.addEventListener("click", copyAllQueryCodes);
   feedbackBtn.addEventListener("click", () => {
@@ -1790,4 +2177,8 @@
   updateReorderButton();
   applyGameMode({ animate: false });
   loadCodes();
+  window.setInterval(pollDataChanges, 2000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) pollDataChanges();
+  });
 })();
