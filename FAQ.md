@@ -63,9 +63,9 @@ These two files are not uploaded to GitHub.
 
 ## 如何导入配置码？ / How do I import configuration codes?
 
-打开设置，点击“预览当前配置码”下方的“导入配置码”，选择由 Marku 导出的 TXT，或包含可识别配置码的 TXT 文件。
+打开设置，点击“预览当前配置码”下方的“导入本地配置码”，选择“选择本地TXT文件”，导入由 Marku 导出的 TXT，或包含可识别配置码的 TXT 文件。
 
-Open Settings, click "Import Configuration Codes" below "Preview Current Configuration Codes", and select a TXT exported by Marku or a TXT file containing recognizable configuration codes.
+Open Settings, click "Import Local Configuration Codes" below "Preview Current Configuration Codes", choose "Select Local TXT File", and import a TXT exported by Marku or a TXT file containing recognizable configuration codes.
 
 导入范围分为四种：
 

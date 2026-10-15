@@ -25,6 +25,7 @@
     filters: {
       game: "暗区突围",
       type: "",
+      mode: "",
       search: "",
     },
   };
@@ -38,6 +39,7 @@
   let draggedRow = null;
   let draggedRecently = false;
   let tabIndicatorReady = false;
+  let formTypeValue = "";
   const animatedSegmentIndicators = new WeakSet();
 
   const $ = (selector) => document.querySelector(selector);
@@ -48,9 +50,13 @@
   const searchClearBtn = $("#searchClearBtn");
   const typeFilter = $("#typeFilter");
   const typeFilterDropdown = $("#typeFilterDropdown");
+  const deltaModeFilter = $("#deltaModeFilter");
+  const deltaModeDropdown = $("#deltaModeDropdown");
+  const clearFiltersBtn = $("#clearFiltersBtn");
   const mainContent = $("#mainContent");
   const gameTabs = $("#gameTabs");
   const tabIndicator = gameTabs.querySelector(".tab-indicator");
+  const gameLogo = $("#gameLogo");
   const gameTitle = $("#gameTitle");
   const announcementsBtn = $("#announcementsBtn");
   const announcementsDialog = $("#announcementsDialog");
@@ -113,7 +119,10 @@
   const fieldType = $("#field-type");
   const fieldTypeDropdown = $("#fieldTypeDropdown");
   const fieldWeapon = $("#field-weapon");
+  const weaponFieldLabel = $("#weaponFieldLabel");
   const fieldPrice = $("#field-price");
+  const priceField = $("#priceField");
+  const priceSuffix = $("#priceSuffix");
   const fieldCode = $("#field-code");
   const codeLabel = $("#codeLabel");
 
@@ -128,6 +137,8 @@
       '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>',
     grip:
       '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 9h8M8 15h8"></path></svg>',
+    more:
+      '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg>',
     reorder:
       '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 16-4 4-4-4M17 20V4M3 8l4-4 4 4M7 4v16"></path></svg>',
   };
@@ -136,6 +147,45 @@
     改枪码: "badge-mod",
     配装码: "badge-loadout",
   };
+
+  function getDeltaMode(item) {
+    const code = String(item && item.code ? item.code : "");
+    if (/BLAST6/i.test(code)) return "黑潮爆破配装码";
+    if (code.includes("-黑潮爆破-")) return "黑潮爆破改枪码";
+    if (code.includes("-全面战场-")) return "全面战场改枪码";
+    if (code.includes("-烽火地带-")) return "烽火地带改枪码";
+    return "";
+  }
+
+  function getDeltaTypeForCode(code) {
+    return /BLAST6/i.test(String(code || "")) ? "配装码" : "改枪码";
+  }
+
+  const DELTA_MODE_CLASS = {
+    烽火地带改枪码: "badge-delta-operations",
+    全面战场改枪码: "badge-delta-warfare",
+    黑潮爆破改枪码: "badge-delta-blacktide",
+    黑潮爆破配装码: "badge-delta-loadout",
+  };
+
+  function getDeltaModeClass(mode) {
+    return DELTA_MODE_CLASS[mode] || "badge-mode";
+  }
+
+  function getSelectedDeltaMode() {
+    return DELTA_MODE_CLASS[fieldType.value] ? fieldType.value : "";
+  }
+
+  function getEffectiveDeltaMode() {
+    return (
+      getSelectedDeltaMode() ||
+      getDeltaMode({ code: fieldCode.value })
+    );
+  }
+
+  function updateDeltaModeDropdown() {
+    setDropdownValue(deltaModeDropdown, state.filters.mode);
+  }
 
   const SETTINGS_TYPES = [
     "游戏设置码",
@@ -574,6 +624,8 @@
     dropdown.classList.remove("is-open");
     const trigger = dropdown.querySelector(".dropdown-trigger");
     if (trigger) trigger.setAttribute("aria-expanded", "false");
+    const dialog = dropdown.closest("dialog");
+    if (dialog) dialog.classList.remove("dropdown-open");
   }
 
   function setDropdownValue(dropdown, value) {
@@ -598,6 +650,8 @@
       event.stopPropagation();
       const isOpen = dropdown.classList.toggle("is-open");
       trigger.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      const dialog = dropdown.closest("dialog");
+      if (dialog) dialog.classList.toggle("dropdown-open", isOpen);
       if (isOpen) {
         document.querySelectorAll("[data-dropdown].is-open").forEach((other) => {
           if (other !== dropdown) closeDropdown(other);
@@ -728,14 +782,25 @@
       if (state.switchToken !== token) return;
     }
 
-    gameTitle.textContent = gameLabel(game);
     const isArena = game === "暗区突围";
+    const label = gameLabel(game);
+    gameTitle.textContent = label;
+    gameLogo.src = isArena
+      ? "/assets/arena-breakout-icon.png?v=20261016-1"
+      : "/assets/delta-force-icon.png?v=20261016-1";
+    gameLogo.alt = label;
     typeFilterDropdown.hidden = !isArena;
+    deltaModeDropdown.hidden = isArena;
     settingsCodeBtn.hidden = !isArena;
     if (!isArena) {
       setDropdownValue(typeFilterDropdown, "");
       state.filters.type = "";
+    } else {
+      state.filters.mode = "";
     }
+    updateDeltaModeDropdown();
+    updateClearFilterButton();
+    updateReorderButton();
 
     window.scrollTo(0, 0);
     render();
@@ -820,17 +885,33 @@
     await loadCodes({ notifyExternalChange: true });
   }
 
+  function hasActiveFilters() {
+    return Boolean(
+      state.filters.type || state.filters.mode || state.filters.search
+    );
+  }
+
+  function updateClearFilterButton() {
+    clearFiltersBtn.disabled = !hasActiveFilters();
+  }
+
   function canReorder() {
     return (
-      state.reorderMode && !state.filters.type && !state.filters.search
+      state.reorderMode &&
+      !state.filters.type &&
+      !state.filters.mode &&
+      !state.filters.search
     );
   }
 
   function getFiltered() {
-    const { game, type, search } = state.filters;
+    const { game, type, mode, search } = state.filters;
     return state.codes.filter((item) => {
       if (game && item.game !== game) return false;
       if (type && item.type !== type) return false;
+      if (game === "三角洲行动" && mode && getDeltaMode(item) !== mode) {
+        return false;
+      }
       if (search) {
         const weapon = item.weapon || "";
         const matched = window.pinyinPro
@@ -840,6 +921,31 @@
       }
       return true;
     });
+  }
+
+  function closeRowMenus(except = null) {
+    document.querySelectorAll(".row-action-menu.is-open").forEach((menu) => {
+      if (menu === except) return;
+      menu.classList.remove("is-open");
+      menu.hidden = true;
+      const button = menu
+        .closest(".row-actions")
+        ?.querySelector("[data-row-menu]");
+      if (button) button.setAttribute("aria-expanded", "false");
+    });
+  }
+
+  function toggleRowMenu(button) {
+    const menu = button
+      .closest(".row-actions")
+      ?.querySelector(".row-action-menu");
+    if (!menu) return;
+
+    const shouldOpen = menu.hidden;
+    closeRowMenus(menu);
+    menu.hidden = !shouldOpen;
+    menu.classList.toggle("is-open", shouldOpen);
+    button.setAttribute("aria-expanded", String(shouldOpen));
   }
 
   function rowHTML(item) {
@@ -855,6 +961,12 @@
             item.type
           )}</span>`
         : "";
+    const deltaMode = item.game === "三角洲行动" ? getDeltaMode(item) : "";
+    const modeBadge = deltaMode
+      ? `<span class="badge ${getDeltaModeClass(
+          deltaMode
+        )}">${escapeHtml(deltaMode)}</span>`
+      : "";
     return `<article class="row" data-id="${escapeHtml(item.id)}" draggable="${draggable ? "true" : "false"}">
       ${
         draggable
@@ -868,18 +980,28 @@
           )}</h3>
           ${priceChip}
           ${typeBadge}
+          ${modeBadge}
         </div>
       </div>
       <div class="row-actions">
-        <button class="icon-btn" type="button" data-action="copy" data-tooltip="复制" aria-label="复制">${ICONS.copy}</button>
-        <button class="icon-btn" type="button" data-action="edit" data-tooltip="编辑" aria-label="编辑">${ICONS.edit}</button>
-        <button class="icon-btn danger" type="button" data-action="delete" data-tooltip="删除" aria-label="删除">${ICONS.trash}</button>
+        <div class="row-action-set">
+          <button class="icon-btn" type="button" data-action="copy" data-tooltip="复制" aria-label="复制">${ICONS.copy}</button>
+          <button class="icon-btn" type="button" data-action="edit" data-tooltip="编辑" aria-label="编辑">${ICONS.edit}</button>
+          <button class="icon-btn danger" type="button" data-action="delete" data-tooltip="删除" aria-label="删除">${ICONS.trash}</button>
+        </div>
+        <button class="icon-btn row-more-btn" type="button" data-row-menu aria-label="更多操作" aria-haspopup="menu" aria-expanded="false">${ICONS.more}</button>
+        <div class="row-action-menu" role="menu" hidden>
+          <button class="row-action-item" type="button" role="menuitem" data-action="copy">${ICONS.copy}<span>复制</span></button>
+          <button class="row-action-item" type="button" role="menuitem" data-action="edit">${ICONS.edit}<span>编辑</span></button>
+          <button class="row-action-item" type="button" role="menuitem" data-action="delete">${ICONS.trash}<span>删除</span></button>
+        </div>
       </div>
     </article>`;
   }
 
   function emptyHTML() {
-    const hasFilter = state.filters.type || state.filters.search;
+    const hasFilter =
+      state.filters.type || state.filters.mode || state.filters.search;
     return `<div class="empty"><strong>${
       hasFilter ? "没有符合条件的配置" : "还没有配置"
     }</strong>${hasFilter ? "换个筛选条件试试" : "点击右上角「新增」开始添加"}</div>`;
@@ -926,12 +1048,19 @@
             item.type
           )}</span>`
         : "";
+    const deltaMode = item.game === "三角洲行动" ? getDeltaMode(item) : "";
+    const modeBadge = deltaMode
+      ? `<span class="badge ${getDeltaModeClass(
+          deltaMode
+        )}">${escapeHtml(deltaMode)}</span>`
+      : "";
 
     return `<div class="detail-head">
       <div class="detail-title-wrap">
         <h2 class="detail-title">${escapeHtml(item.weapon)}</h2>
         ${priceChip}
         ${typeBadge}
+        ${modeBadge}
       </div>
     </div>
     <div class="code-section">
@@ -964,16 +1093,89 @@
     formError.hidden = false;
   }
 
-  function configureFormForGame(game) {
+  function updateFormGrid() {
+    const typeVisible = !typeField.hidden;
+    const priceVisible = !priceField.hidden;
+    metaRow.classList.toggle("three", typeVisible && priceVisible);
+    metaRow.classList.toggle("two", typeVisible && !priceVisible);
+    metaRow.classList.toggle("single", !typeVisible && !priceVisible);
+  }
+
+  function updateDeltaFormFields() {
+    if (state.formGame !== "三角洲行动") {
+      priceField.hidden = false;
+      priceSuffix.hidden = false;
+      fieldPrice.placeholder = fieldType.value ? "例如：30" : "";
+      weaponFieldLabel.textContent =
+        fieldType.value === "配装码"
+          ? "配装描述"
+          : fieldType.value === "改枪码"
+          ? "枪械描述"
+          : "描述";
+      fieldWeapon.placeholder =
+        !fieldType.value
+          ? ""
+          : fieldType.value === "配装码"
+          ? "五套AEK"
+          : fieldType.value === "改枪码"
+          ? "H416"
+          : "请输入描述";
+      updateFormGrid();
+      return;
+    }
+
+    const mode = getEffectiveDeltaMode();
+    const hasPrice =
+      mode === "烽火地带改枪码" || mode === "黑潮爆破改枪码";
+    const hasPriceUnit = mode === "烽火地带改枪码";
+    const isBlackTideLoadout = mode === "黑潮爆破配装码";
+    priceField.hidden = !hasPrice;
+    priceSuffix.hidden = !hasPriceUnit;
+    fieldPrice.placeholder =
+      !mode
+        ? ""
+        : mode === "黑潮爆破改枪码"
+        ? "例如：3300"
+        : "例如：30";
+    weaponFieldLabel.textContent = !mode
+      ? "描述"
+      : isBlackTideLoadout
+      ? "配装描述"
+      : "枪械描述";
+    fieldWeapon.placeholder = isBlackTideLoadout
+      ? "例如：攻防兼备"
+      : mode
+      ? "例如：QJB201两倍45发"
+      : "";
+    updateFormGrid();
+  }
+
+  function setFormTypeOptions(game) {
+    const scope = game === "暗区突围" ? "arena" : "delta";
+    fieldTypeDropdown.querySelectorAll(".dropdown-option").forEach((option) => {
+      if (!option.dataset.formType) return;
+      option.hidden = option.dataset.formType !== scope;
+    });
+  }
+
+  function configureFormForGame(game, isNew) {
     const isArena = game === "暗区突围";
-    typeField.hidden = !isArena;
-    metaRow.classList.toggle("three", isArena);
-    if (!isArena) setDropdownValue(fieldTypeDropdown, "改枪码");
+    setFormTypeOptions(game);
+    typeField.hidden = !(isArena || isNew);
+    updateDeltaFormFields();
   }
 
   function updateCodeLabel() {
     if (state.formGame === "三角洲行动") {
-      codeLabel.textContent = "改枪码";
+      const inferredMode = getDeltaMode({ code: fieldCode.value });
+      if (inferredMode && inferredMode !== getSelectedDeltaMode()) {
+        setDropdownValue(fieldTypeDropdown, inferredMode);
+        formTypeValue = inferredMode;
+      }
+      codeLabel.textContent =
+        getEffectiveDeltaMode() === "黑潮爆破配装码"
+          ? "配装方案码"
+          : "改枪码";
     } else {
       codeLabel.textContent = fieldType.value || "代码";
     }
@@ -984,33 +1186,44 @@
     formTitle.textContent = item ? "编辑" : "新增";
 
     fieldId.value = item ? item.id : "";
+    setFormTypeOptions(state.formGame);
     setDropdownValue(
       fieldTypeDropdown,
       item
-        ? item.type
-        : state.formGame === "暗区突围"
-        ? ""
-        : "改枪码"
+        ? state.formGame === "三角洲行动"
+          ? getDeltaMode(item)
+          : item.type
+        : ""
     );
     fieldWeapon.value = item ? item.weapon : "";
     fieldPrice.value = item ? item.price || "" : "";
     fieldCode.value = item ? item.code : "";
 
-    configureFormForGame(state.formGame);
+    configureFormForGame(state.formGame, !item);
     updateCodeLabel();
+    formTypeValue = fieldType.value;
     state.formSnapshot = captureFormValues();
     formError.hidden = true;
+    formDialog.scrollTop = 0;
+    entryForm.scrollTop = 0;
     showDialog(formDialog);
   }
 
   function collectForm() {
+    const code = fieldCode.value;
+    const deltaMode = getEffectiveDeltaMode();
     return {
       id: fieldId.value,
       game: state.formGame,
-      type: state.formGame === "三角洲行动" ? "改枪码" : fieldType.value,
+      type:
+        state.formGame === "三角洲行动"
+          ? deltaMode === "黑潮爆破配装码"
+            ? "配装码"
+            : "改枪码"
+          : fieldType.value,
       weapon: fieldWeapon.value.trim(),
       price: fieldPrice.value.trim(),
-      code: fieldCode.value,
+      code,
     };
   }
 
@@ -1020,8 +1233,27 @@
 
     const payload = collectForm();
     const errors = [];
+    const selectedDeltaMode = getSelectedDeltaMode();
+    const inferredDeltaMode = getDeltaMode({ code: fieldCode.value });
+    if (
+      state.formGame === "三角洲行动" &&
+      !typeField.hidden &&
+      !selectedDeltaMode
+    ) {
+      errors.push("请选择类型");
+    }
+    if (
+      state.formGame === "三角洲行动" &&
+      selectedDeltaMode &&
+      inferredDeltaMode &&
+      selectedDeltaMode !== inferredDeltaMode
+    ) {
+      errors.push("所选类型与代码模式不一致");
+    }
     if (!payload.type) errors.push("请选择类型");
-    if (!payload.weapon) errors.push("枪械/描述不能为空");
+    if (!payload.weapon) {
+      errors.push(`${weaponFieldLabel.textContent || "枪械描述"}不能为空`);
+    }
     if (!payload.code.trim()) {
       errors.push(`${codeLabel.textContent || "代码"}不能为空`);
     }
@@ -1688,10 +1920,16 @@
   }
 
   function updateReorderButton() {
+    const filtersActive = hasActiveFilters();
+    reorderBtn.disabled = filtersActive && !state.reorderMode;
     if (state.reorderMode) {
       reorderBtn.innerHTML = ICONS.check;
       reorderBtn.dataset.tooltip = "保存顺序";
       reorderBtn.setAttribute("aria-label", "保存顺序");
+    } else if (filtersActive) {
+      reorderBtn.innerHTML = ICONS.reorder;
+      reorderBtn.dataset.tooltip = "请先清空筛选";
+      reorderBtn.setAttribute("aria-label", "请先清空筛选");
     } else {
       reorderBtn.innerHTML = ICONS.reorder;
       reorderBtn.dataset.tooltip = "调整顺序";
@@ -1707,7 +1945,7 @@
 
   async function handleReorderClick() {
     if (!state.reorderMode) {
-      if (state.filters.type || state.filters.search) {
+      if (hasActiveFilters()) {
         showToast("请先清空筛选和搜索");
         return;
       }
@@ -1766,6 +2004,21 @@
     searchInput
       .closest(".search-input-wrap")
       .classList.toggle("has-value", hasValue);
+  }
+
+  function clearFilters() {
+    state.filters.type = "";
+    state.filters.mode = "";
+    state.filters.search = "";
+    searchInput.value = "";
+    setDropdownValue(typeFilterDropdown, "");
+    setDropdownValue(deltaModeDropdown, "");
+    renderSearchMirror("", false);
+    updateSearchClearButton();
+    updateClearFilterButton();
+    updateReorderButton();
+    render({ animateResults: true });
+    showToast("已清空筛选");
   }
 
   searchClearBtn.addEventListener("click", () => {
@@ -1838,10 +2091,11 @@
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
       state.filters.search = searchInput.value.trim().toLowerCase();
-      if (state.reorderMode) {
+      if (state.reorderMode && hasActiveFilters()) {
         state.reorderMode = false;
-        updateReorderButton();
       }
+      updateClearFilterButton();
+      updateReorderButton();
       render({ animateResults: true });
     }, 120);
   });
@@ -1851,15 +2105,68 @@
 
   typeFilter.addEventListener("change", () => {
     state.filters.type = typeFilter.value;
-    if (state.reorderMode) {
+    if (state.reorderMode && hasActiveFilters()) {
       state.reorderMode = false;
-      updateReorderButton();
     }
+    updateClearFilterButton();
+    updateReorderButton();
     render({ animateResults: true });
   });
 
-  fieldType.addEventListener("change", () => {
-    if (state.formGame === "暗区突围") updateCodeLabel();
+  deltaModeFilter.addEventListener("change", () => {
+    state.filters.mode = deltaModeFilter.value;
+    if (state.reorderMode && hasActiveFilters()) {
+      state.reorderMode = false;
+    }
+    updateDeltaModeDropdown();
+    updateClearFilterButton();
+    updateReorderButton();
+    render({ animateResults: true });
+  });
+
+  clearFiltersBtn.addEventListener("click", clearFilters);
+
+  fieldType.addEventListener("change", async () => {
+    const nextType = fieldType.value;
+    const hasOtherContent = Boolean(
+      fieldWeapon.value.trim() ||
+      fieldPrice.value.trim() ||
+      fieldCode.value.trim()
+    );
+
+    if (nextType !== formTypeValue && hasOtherContent) {
+      const fieldNames = [weaponFieldLabel.textContent.trim()];
+      if (!priceField.hidden) fieldNames.push("价格");
+      fieldNames.push(codeLabel.textContent.trim());
+      const confirmed = await showConfirm(
+        `切换类型会清空“${fieldNames.join("”“")}”内容，是否继续？`,
+        {
+          title: "切换类型",
+          okText: "清空并切换",
+        }
+      );
+      if (!confirmed) {
+        setDropdownValue(fieldTypeDropdown, formTypeValue);
+        updateCodeLabel();
+        updateDeltaFormFields();
+        return;
+      }
+
+      fieldWeapon.value = "";
+      fieldPrice.value = "";
+      fieldCode.value = "";
+      formError.hidden = true;
+      showToast("已清空其他内容");
+    }
+
+    formTypeValue = nextType;
+    updateCodeLabel();
+    updateDeltaFormFields();
+  });
+
+  fieldCode.addEventListener("input", () => {
+    updateCodeLabel();
+    updateDeltaFormFields();
   });
 
   fieldPrice.addEventListener("input", () => {
@@ -1967,12 +2274,18 @@
     const id = row.dataset.id;
     const item = findItem(id);
     if (!item) return;
+    const menuButton = event.target.closest("[data-row-menu]");
+    if (menuButton) {
+      toggleRowMenu(menuButton);
+      return;
+    }
     const actionBtn = event.target.closest("[data-action]");
     if (actionBtn) {
       const action = actionBtn.dataset.action;
       if (action === "copy") copyCode(item, actionBtn);
       if (action === "edit") openForm(item);
       if (action === "delete") deleteItem(id);
+      closeRowMenus();
       return;
     }
     openDetail(id);
@@ -2013,7 +2326,16 @@
   queryBackupBtn.addEventListener("click", backupDataFolder);
   queryExportBtn.addEventListener("click", exportQueryCodes);
   queryCopyAllBtn.addEventListener("click", copyAllQueryCodes);
-  feedbackBtn.addEventListener("click", () => {
+  feedbackBtn.addEventListener("click", async () => {
+    const confirmed = await showConfirm(
+      "该操作将跳转到 GitHub 反馈页面，是否继续？",
+      {
+        title: "跳转提示",
+        okText: "前往 GitHub",
+        hideCancel: true,
+      }
+    );
+    if (!confirmed) return;
     window.open(
       "https://github.com/26434288-a11y/marku-fps-config-code-library/issues/new/choose",
       "_blank",
@@ -2077,6 +2399,29 @@
   detailDeleteBtn.addEventListener("click", () => deleteItem(state.currentId));
 
   entryForm.addEventListener("submit", submitForm);
+  entryForm.addEventListener("keydown", (event) => {
+    if (
+      event.key !== "Enter" ||
+      event.isComposing ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.altKey
+    ) {
+      return;
+    }
+    const target = event.target;
+    if (
+      !(
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement
+      ) ||
+      target.type === "hidden"
+    ) {
+      return;
+    }
+    event.preventDefault();
+    entryForm.requestSubmit();
+  });
 
   function captureFormValues() {
     return JSON.stringify({
@@ -2140,12 +2485,28 @@
     document.querySelectorAll("[data-dropdown].is-open").forEach(closeDropdown);
   });
 
+  document.addEventListener("click", (event) => {
+    if (
+      event.target.closest("[data-row-menu]") ||
+      event.target.closest(".row-action-menu")
+    ) {
+      return;
+    }
+    closeRowMenus();
+  });
+
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
     const openDropdown = document.querySelector("[data-dropdown].is-open");
     if (openDropdown) {
       event.preventDefault();
       closeDropdown(openDropdown);
+      return;
+    }
+    const openRowMenu = document.querySelector(".row-action-menu.is-open");
+    if (openRowMenu) {
+      event.preventDefault();
+      closeRowMenus();
     }
   });
 
@@ -2173,7 +2534,9 @@
   updateSettingsUI();
   setupSettingControlAnimations();
   initDropdown(typeFilterDropdown);
+  initDropdown(deltaModeDropdown);
   initDropdown(fieldTypeDropdown);
+  updateClearFilterButton();
   updateReorderButton();
   applyGameMode({ animate: false });
   loadCodes();

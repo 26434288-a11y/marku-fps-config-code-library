@@ -4,6 +4,38 @@
 
 Important updates to this project are recorded in this file.
 
+## [1.3.0] - 2026-10-16
+
+### Added
+
+- 三角洲行动新增烽火地带改枪码、全面战场改枪码、黑潮爆破改枪码和黑潮爆破配装码，并支持按代码格式自动识别和筛选<br>Added Delta Force Operations weapon build codes, Warfare weapon build codes, Black Tide weapon build codes, and Black Tide loadout codes, with automatic recognition and filtering based on code format
+- 新增“清空筛选”；筛选生效时禁止进入调整顺序模式，并显示原因提示<br>Added "Clear filters"; reorder mode is disabled while filters are active and now explains why
+- 游戏标题和页签新增暗区突围：无限、三角洲行动官方图标，移动端标题仅保留缩小后的游戏图标<br>Added official Arena Breakout: Infinite and Delta Force icons to the game title and tabs; mobile view keeps only the smaller game icon
+- 移动端卡片操作合并为“更多操作”菜单，可复制、编辑和删除<br>Combined mobile card actions into a More Actions menu for copy, edit, and delete
+- 新增/编辑页面支持按 Enter 提交，代码文本框不再插入换行<br>Added Enter-to-submit support to the add/edit form, including the code text area
+- GitHub 留言入口新增跳转确认提示<br>Added a navigation confirmation prompt to the GitHub feedback entry
+
+### Changed
+
+- 三角洲行动新增/编辑表单根据模式动态调整价格、单位和描述字段<br>Delta Force add/edit fields now adapt pricing, units, and descriptions to the selected mode
+- 暗区突围新增/编辑表单根据类型显示“枪械描述”或“配装描述”<br>Arena Breakout: Infinite now shows either weapon description or loadout description based on the selected type
+- 移动端响应式断点由 640px 调整为 480px<br>Adjusted the mobile breakpoint from 640px to 480px
+- 桌面端项目图标与游戏图标统一为 26px，移动端统一为 20px<br>Unified the project and game icons at 26px on desktop and 20px on mobile
+- 卡片高度调整并统一搜索框、筛选框和操作按钮尺寸<br>Adjusted the card height and unified the search, filter, and action control sizes
+- 移动端筛选菜单与触发框对齐，选项保持单行并显示省略号<br>Aligned the mobile filter menu with its trigger and kept options on one line with ellipsis
+- “导入配置码”改为“导入本地配置码”，“选择 TXT 文件”改为“选择本地TXT文件”<br>Renamed "Import Configuration Codes" to "Import Local Configuration Codes" and "Select TXT File" to "Select Local TXT File"
+
+### Fixed
+
+- 修复点击游戏页签时短暂出现横向滚动条的问题<br>Fixed the horizontal scrollbar briefly appearing when switching game tabs
+- 修复移动端筛选选项换行和菜单错位的问题<br>Fixed mobile filter options wrapping and menu misalignment
+- 修复桌面端错误显示移动端“更多操作”按钮的问题<br>Fixed the mobile More Actions button incorrectly appearing on desktop
+- 修复移动端页签、操作区和标题栏在窄屏下相互挤压的问题<br>Fixed crowding between mobile tabs, card actions, and the title bar on narrow screens
+
+### Downloads
+
+- [Marku v1.3.0](https://github.com/26434288-a11y/marku-fps-config-code-library/releases/tag/v1.3.0)
+
 ## [1.2.0] - 2026-10-15
 
 ### Added

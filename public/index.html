@@ -6,20 +6,26 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Marku</title>
   <link rel="icon" type="image/png" href="/assets/ak-icon.png?v=20261014-1">
-  <link rel="stylesheet" href="/styles.css?v=20261015-1">
+  <link rel="stylesheet" href="/styles.css?v=20261016-11">
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand">
-        <img class="brand-mark" src="/assets/ak-icon.png" width="22" height="22" alt="">
+        <img class="brand-mark" src="/assets/ak-icon.png" width="26" height="26" alt="">
         <span class="brand-name">Marku</span>
       </div>
       <div class="topbar-actions">
         <div class="tabs" role="tablist" id="gameTabs">
           <span class="tab-indicator" aria-hidden="true"></span>
-          <button class="tab is-active" type="button" data-game="暗区突围">暗区突围：无限</button>
-          <button class="tab" type="button" data-game="三角洲行动">三角洲行动</button>
+          <button class="tab is-active" type="button" data-game="暗区突围">
+            <img class="tab-icon" src="/assets/arena-breakout-icon.png?v=20261016-1" width="16" height="16" alt="" aria-hidden="true" draggable="false">
+            <span>暗区突围：无限</span>
+          </button>
+          <button class="tab" type="button" data-game="三角洲行动">
+            <img class="tab-icon" src="/assets/delta-force-icon.png?v=20261016-1" width="16" height="16" alt="" aria-hidden="true" draggable="false">
+            <span>三角洲行动</span>
+          </button>
         </div>
         <button class="icon-btn" id="settingsBtn" type="button" aria-label="设置">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -33,7 +39,10 @@
 
   <main class="container" id="mainContent">
     <div class="view-head">
-      <h1 class="view-title" id="gameTitle">暗区突围：无限</h1>
+      <div class="game-title-wrap">
+        <img class="game-logo" id="gameLogo" src="/assets/arena-breakout-icon.png?v=20261016-1" width="26" height="26" alt="暗区突围：无限" draggable="false">
+        <h1 class="view-title" id="gameTitle">暗区突围：无限</h1>
+      </div>
       <div class="view-actions">
         <button class="icon-btn" id="announcementsBtn" type="button" data-tooltip="查看最新公告" aria-label="查看最新公告">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -85,6 +94,28 @@
             <button class="dropdown-option" type="button" role="option" data-value="配装码" aria-selected="false">配装码</button>
           </div>
         </div>
+        <div class="dropdown" id="deltaModeDropdown" data-dropdown hidden>
+          <input type="hidden" id="deltaModeFilter" class="dropdown-value" value="">
+          <button class="dropdown-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+            <span class="dropdown-label" data-placeholder="全部类型">全部类型</span>
+            <svg class="dropdown-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m6 9 6 6 6-6"></path>
+            </svg>
+          </button>
+          <div class="dropdown-menu" role="listbox">
+            <button class="dropdown-option is-selected" type="button" role="option" data-value="" aria-selected="true">全部类型</button>
+            <button class="dropdown-option" type="button" role="option" data-value="烽火地带改枪码" aria-selected="false">烽火地带改枪码</button>
+            <button class="dropdown-option" type="button" role="option" data-value="全面战场改枪码" aria-selected="false">全面战场改枪码</button>
+            <button class="dropdown-option" type="button" role="option" data-value="黑潮爆破改枪码" aria-selected="false">黑潮爆破改枪码</button>
+            <button class="dropdown-option" type="button" role="option" data-value="黑潮爆破配装码" aria-selected="false">黑潮爆破配装码</button>
+          </div>
+        </div>
+        <button class="icon-btn clear-filter-btn" id="clearFiltersBtn" type="button" data-tooltip="清空筛选" aria-label="清空筛选" disabled>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 5h18M6 12h8M10 19h4"></path>
+            <path d="m17 14 4 4m0-4-4 4"></path>
+          </svg>
+        </button>
       </div>
       <button class="icon-btn" id="settingsCodeBtn" type="button" data-tooltip="设置码" aria-label="设置码">
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -157,20 +188,24 @@
             </button>
             <div class="dropdown-menu" role="listbox">
               <button class="dropdown-option is-selected" type="button" role="option" data-value="" aria-selected="true">请选择</button>
-              <button class="dropdown-option" type="button" role="option" data-value="改枪码" aria-selected="false">改枪码</button>
-              <button class="dropdown-option" type="button" role="option" data-value="配装码" aria-selected="false">配装码</button>
+              <button class="dropdown-option" type="button" role="option" data-form-type="arena" data-value="改枪码" aria-selected="false">改枪码</button>
+              <button class="dropdown-option" type="button" role="option" data-form-type="arena" data-value="配装码" aria-selected="false">配装码</button>
+              <button class="dropdown-option" type="button" role="option" data-form-type="delta" data-value="烽火地带改枪码" aria-selected="false" hidden>烽火地带改枪码</button>
+              <button class="dropdown-option" type="button" role="option" data-form-type="delta" data-value="全面战场改枪码" aria-selected="false" hidden>全面战场改枪码</button>
+              <button class="dropdown-option" type="button" role="option" data-form-type="delta" data-value="黑潮爆破改枪码" aria-selected="false" hidden>黑潮爆破改枪码</button>
+              <button class="dropdown-option" type="button" role="option" data-form-type="delta" data-value="黑潮爆破配装码" aria-selected="false" hidden>黑潮爆破配装码</button>
             </div>
           </div>
         </div>
         <label class="field">
-          <span>枪械/描述</span>
+          <span id="weaponFieldLabel">枪械描述</span>
           <input name="weapon" id="field-weapon" required maxlength="80" placeholder="例如：QJB201两倍45发" autocomplete="off">
         </label>
-        <label class="field">
+        <label class="field" id="priceField">
           <span>价格</span>
           <div class="input-suffix">
             <input name="price" id="field-price" inputmode="decimal" placeholder="例如：30" autocomplete="off">
-            <span class="suffix" aria-hidden="true">W</span>
+            <span class="suffix" id="priceSuffix" aria-hidden="true">W</span>
           </div>
         </label>
       </div>
@@ -220,7 +255,7 @@
         <button class="btn setting-action" id="queryCodesBtn" type="button">预览当前配置码</button>
       </div>
       <div class="setting-group">
-        <button class="btn setting-action" id="importCodesBtn" type="button">导入配置码</button>
+        <button class="btn setting-action" id="importCodesBtn" type="button">导入本地配置码</button>
       </div>
       <div class="setting-group">
         <button class="btn setting-action" id="openLocationBtn" type="button">打开文件所在位置</button>
@@ -263,7 +298,7 @@
           <span class="import-scope-label">全部配置码</span>
         </label>
       </div>
-      <button class="btn setting-action" id="importSelectFileBtn" type="button">选择 TXT 文件</button>
+      <button class="btn setting-action" id="importSelectFileBtn" type="button">选择本地TXT文件</button>
       <input id="importCodesFile" type="file" accept=".txt,text/plain" hidden>
     </div>
   </dialog>
@@ -410,6 +445,6 @@
 
   <script src="/vendor/pinyin-pro.min.js"></script>
   <script src="/import-parser.js?v=20261015-2" defer></script>
-  <script src="/app.js?v=20261015-5" defer></script>
+  <script src="/app.js?v=20261016-6" defer></script>
 </body>
 </html>
