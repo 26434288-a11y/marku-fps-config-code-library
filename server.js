@@ -219,6 +219,8 @@ function findMarkuHelper() {
   const candidates = [
     path.join(ROOT, '.build', 'Marku.exe'),
     path.join(ROOT, 'Marku.exe'),
+    path.join(ROOT, 'Marku-Browser.exe'),
+    path.join(ROOT, 'Marku-Desktop.exe'),
   ];
   return candidates.find((candidate) => fs.existsSync(candidate)) || '';
 }

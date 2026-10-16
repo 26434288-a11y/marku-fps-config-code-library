@@ -19,11 +19,15 @@ A lightweight game configuration code manager for storing gun build codes, loado
 - 数据保存在本地 JSON 文件<br>Data stored in local JSON files
 - 原生 HTML / CSS / JavaScript，无前端构建步骤<br>Native HTML / CSS / JavaScript with no frontend build step
 
-## 下载便携版 / Portable Download
+## 下载版本 / Downloads
 
-普通用户请下载最新 Release 中的 `Marku-Code-Library.zip`。完整解压后双击 `Marku.exe` 即可运行。
+浏览器启动版：下载 `Marku-Code-Library-Browser.zip`，完整解压后双击 `Marku-Browser.exe`。
 
-Regular users should download `Marku-Code-Library.zip` from the latest Release. Extract it completely, then double-click `Marku.exe` to run.
+Browser launcher: download `Marku-Code-Library-Browser.zip`, extract it completely, then double-click `Marku-Browser.exe`.
+
+独立桌面版：下载 `Marku-Code-Library-Desktop.zip`，完整解压后双击 `Marku-Desktop.exe`。
+
+Standalone desktop app: download `Marku-Code-Library-Desktop.zip`, extract it completely, then double-click `Marku-Desktop.exe`.
 
 [下载最新版本 / Download the latest version](https://github.com/26434288-a11y/marku-fps-config-code-library/releases/latest)
 

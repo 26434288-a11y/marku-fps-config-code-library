@@ -2,9 +2,13 @@
 
 ## 下载哪个文件？ / Which file should I download?
 
-请下载 Release 中的 `Marku-Code-Library.zip`。
+请下载 Release 中的 `Marku-Code-Library-Browser.zip` 或 `Marku-Code-Library-Desktop.zip`。
 
-Download `Marku-Code-Library.zip` from the Release.
+Download either `Marku-Code-Library-Browser.zip` or `Marku-Code-Library-Desktop.zip` from the Release.
+
+浏览器启动版运行 `Marku-Browser.exe`；独立桌面版运行 `Marku-Desktop.exe`。
+
+Run `Marku-Browser.exe` for the browser launcher, or `Marku-Desktop.exe` for the standalone desktop app.
 
 不要下载 `Source code (zip)` 或 `Source code (tar.gz)`，这些只是 GitHub 自动生成的源码包，不能直接双击运行。
 
@@ -30,12 +34,12 @@ node server.js
 
 The current program does not have a paid code-signing certificate, so Windows cannot verify the publisher's identity.
 
-请只从本项目的 GitHub Releases 页面下载 `Marku-Code-Library.zip`，然后按以下步骤运行：
+请只从本项目的 GitHub Releases 页面下载 `Marku-Code-Library-Browser.zip` 或 `Marku-Code-Library-Desktop.zip`，然后按以下步骤运行：
 
-Only download `Marku-Code-Library.zip` from this project's GitHub Releases page, then follow these steps:
+Only download `Marku-Code-Library-Browser.zip` or `Marku-Code-Library-Desktop.zip` from this project's GitHub Releases page, then follow these steps:
 
 1. 完整解压压缩包。<br>Extract the archive completely.
-2. 双击 `Marku.exe`。<br>Double-click `Marku.exe`.
+2. 浏览器版双击 `Marku-Browser.exe`，桌面版双击 `Marku-Desktop.exe`。<br>Double-click `Marku-Browser.exe` for the browser launcher or `Marku-Desktop.exe` for the desktop app.
 3. 如果出现“Windows 已保护你的电脑”，点击“更多信息”。<br>If "Windows protected your PC" appears, click "More info".
 4. 点击“仍要运行”。<br>Click "Run anyway".
 5. 如果出现用户账户控制，选择“是”。<br>If User Account Control appears, choose "Yes".

@@ -10,11 +10,12 @@ SmartScreen 可能显示“Windows 已保护你的电脑”或“未知发布者
 
 How to run / 运行方法
 
-1. Download Marku-Code-Library.zip only from the official GitHub Releases page.
-   只从官方 GitHub Releases 页面下载 Marku-Code-Library.zip。
+1. Download Marku-Code-Library-Browser.zip or Marku-Code-Library-Desktop.zip
+   only from the official GitHub Releases page.
+   只从官方 GitHub Releases 页面下载 Marku-Code-Library-Browser.zip 或 Marku-Code-Library-Desktop.zip。
 
-2. Extract the entire archive before running Marku.exe.
-   运行 Marku.exe 前请先完整解压压缩包。
+2. Extract the entire archive, then run Marku-Browser.exe or Marku-Desktop.exe.
+   完整解压压缩包后，运行 Marku-Browser.exe 或 Marku-Desktop.exe。
 
 3. If SmartScreen appears, click "More info", then click "Run anyway".
    如果出现 SmartScreen，请点击“更多信息”，然后点击“仍要运行”。
