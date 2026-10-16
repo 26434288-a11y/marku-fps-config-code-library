@@ -67,12 +67,16 @@ These two files are not uploaded to GitHub.
 
 Open Settings, click "Import Local Configuration Codes" below "Preview Current Configuration Codes", choose "Select Local TXT File", and import a TXT exported by Marku or a TXT file containing recognizable configuration codes.
 
+同时兼容国际服常见分享格式：暗区突围：无限支持 `Mod Gun-3f...` / `3f...` 改枪码和 `Equipment-...` 配装码；三角洲行动支持 `Operations`、`Warfare`、`Detonation` 改枪码以及 `BLAST6...` 配装码。
+
+Common international sharing formats are also supported: Arena Breakout: Infinite accepts `Mod Gun-3f...` / `3f...` gun build codes and `Equipment-...` loadout codes; Delta Force accepts `Operations`, `Warfare`, and `Detonation` build codes plus `BLAST6...` loadout codes.
+
 导入范围分为四种：
 
 There are four import scopes:
 
-- 三角洲行动改枪码：只覆盖三角洲行动配置<br>Delta Force weapon build codes: overwrites only Delta Force configurations
-- 暗区突围配装/改枪码：只覆盖暗区突围配置码<br>Arena Breakout loadout/weapon build codes: overwrites only Arena Breakout configuration codes
+- 三角洲行动改枪码：只覆盖三角洲行动配置<br>Delta Force gun build codes: overwrites only Delta Force configurations
+- 暗区突围配装/改枪码：只覆盖暗区突围配置码<br>Arena Breakout loadout/gun build codes: overwrites only Arena Breakout configuration codes
 - 暗区突围设置码：只覆盖设置码<br>Arena Breakout settings codes: overwrites only settings codes
 - 全部配置码：覆盖三角洲行动配置、暗区突围配置码和设置码<br>All configuration codes: overwrites Delta Force configurations, Arena Breakout configuration codes, and settings codes
 
@@ -117,7 +121,7 @@ Arena Breakout codes are identified by the prefixes `改枪-`, `配装-`, `游�
 
 暗区突围：无限的配置类型可以省略。当代码以 `改枪-` 开头时会识别为改枪码，以 `配装-` 开头时会识别为配装码。
 
-The configuration type can be omitted for Arena Breakout: Infinite. A code starting with `改枪-` is recognized as a weapon build code, and one starting with `配装-` is recognized as a loadout code.
+The configuration type can be omitted for Arena Breakout: Infinite. A code starting with `改枪-` is recognized as a gun build code, and one starting with `配装-` is recognized as a loadout code.
 
 例如：
 

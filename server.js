@@ -25,6 +25,13 @@ const DELTA_ANNOUNCEMENT_URL =
 const ARENA_ANNOUNCEMENT_URL = 'https://apps.game.qq.com/cmc/cross';
 const ANNOUNCEMENT_TIMEOUT_MS = 9000;
 const MAX_BODY_BYTES = 1024 * 1024;
+const INTERNATIONAL_CMS_URL = 'https://sg-community.playerinfinite.com';
+const INTERNATIONAL_CMS_PATH =
+  '/api/gpts.information_feeds_svr.InformationFeedsSvr';
+const INTERNATIONAL_CMS_GAME_IDS = {
+  暗区突围: '30048',
+  三角洲行动: '30029',
+};
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -304,11 +311,18 @@ function sortCodes(list) {
 }
 
 const ANNOUNCEMENT_CACHE_MS = 5 * 60 * 1000;
-const ANNOUNCEMENT_CACHE_VERSION = 2;
+const ANNOUNCEMENT_CACHE_VERSION = 3;
 let announcementCache = loadAnnouncementCache();
 
 function createAnnouncementCache() {
   return { at: 0, total: 0, items: [] };
+}
+
+function createAnnouncementCacheGroup() {
+  return {
+    'zh-CN': createAnnouncementCache(),
+    en: createAnnouncementCache(),
+  };
 }
 
 function normalizeAnnouncementCache(value) {
@@ -317,6 +331,22 @@ function normalizeAnnouncementCache(value) {
     at: Number(value.at || 0),
     total: Number(value.total || 0),
     items: Array.isArray(value.items) ? value.items : [],
+  };
+}
+
+function normalizeAnnouncementCacheGroup(value) {
+  if (!value || typeof value !== 'object') {
+    return createAnnouncementCacheGroup();
+  }
+  if (value['zh-CN'] || value.en) {
+    return {
+      'zh-CN': normalizeAnnouncementCache(value['zh-CN']),
+      en: normalizeAnnouncementCache(value.en),
+    };
+  }
+  return {
+    'zh-CN': normalizeAnnouncementCache(value),
+    en: createAnnouncementCache(),
   };
 }
 
@@ -329,15 +359,17 @@ function loadAnnouncementCache() {
     }
     const games = parsed.games || {};
     return {
-      暗区突围: normalizeAnnouncementCache(games['暗区突围'] || parsed.arena),
-      三角洲行动: normalizeAnnouncementCache(
+      暗区突围: normalizeAnnouncementCacheGroup(
+        games['暗区突围'] || parsed.arena
+      ),
+      三角洲行动: normalizeAnnouncementCacheGroup(
         games['三角洲行动'] || parsed.delta || parsed
       ),
     };
   } catch (err) {
     return {
-      暗区突围: createAnnouncementCache(),
-      三角洲行动: createAnnouncementCache(),
+      暗区突围: createAnnouncementCacheGroup(),
+      三角洲行动: createAnnouncementCacheGroup(),
     };
   }
 }
@@ -473,19 +505,111 @@ async function fetchArenaAnnouncementsOnce(limit, start) {
   };
 }
 
-async function fetchAnnouncementsOnce(game, limit, start) {
+function formatCmsAnnouncementDate(timestamp) {
+  const value = Number(timestamp || 0);
+  if (!Number.isFinite(value) || value <= 0) return '';
+  const date = new Date(value * 1000);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().slice(0, 10);
+}
+
+async function postInternationalCms(game, endpoint, payload) {
+  const gameId = INTERNATIONAL_CMS_GAME_IDS[game];
+  if (!gameId) throw new Error('不支持的国际服公告来源');
+
+  const response = await fetchWithTimeout(
+    `${INTERNATIONAL_CMS_URL}${INTERNATIONAL_CMS_PATH}/${endpoint}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json;charset=utf-8',
+        'X-Language': 'en',
+        'X-GameId': gameId,
+        'X-AreaId': 'global',
+        'X-Source': 'pc_web',
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`国际服公告接口返回 ${response.status}`);
+  }
+
+  const result = await response.json();
+  if (Number(result.code || 0) !== 0) {
+    throw new Error(result.msg || '国际服公告获取失败');
+  }
+  if (Number(result.data?.result || 0) !== 0) {
+    throw new Error(result.data?.errmsg || '国际服公告获取失败');
+  }
+  return result.data || {};
+}
+
+async function fetchInternationalAnnouncementsOnce(game, limit, start) {
+  const isArena = game === '暗区突围';
+  const columnName = isArena ? 'WEB-NEWS' : 'official_news_list';
+  const labels = await postInternationalCms(game, 'GetLabelList', {});
+  const column = (labels.primary_label_list || []).find(
+    (item) =>
+      item.label_name === columnName ||
+      item.raw_label_name === columnName ||
+      (isArena && Number(item.label_id) === 893) ||
+      (!isArena && Number(item.label_id) === 825)
+  );
+  if (!column) throw new Error('未找到国际服公告分类');
+
+  const secondaryLabelId = Number(column.default_secondary_label_id || 0);
+  const data = await postInternationalCms(game, 'GetContentByLabel', {
+    primary_label_id: Number(column.label_id),
+    secondary_label_id: secondaryLabelId,
+    offset: start,
+    get_num: limit,
+    content_class: 0,
+    ext_info_type_list: [],
+    sort_by_list: [{ key: 'start_timestamp', asc: 0 }],
+    use_default_language: false,
+  });
+
+  const items = Array.isArray(data.info_content) ? data.info_content : [];
+  return {
+    total: Number(data.total_num || 0),
+    items: items.map((item) => {
+      const contentId = String(item.content_id || '');
+      return {
+        id: contentId,
+        title: String(item.title || ''),
+        date: formatCmsAnnouncementDate(item.pub_timestamp),
+        channel: '',
+        url: isArena
+          ? `https://www.arenabreakoutinfinite.com/en/news.html?content_id=${encodeURIComponent(
+              contentId
+            )}`
+          : `https://www.playdeltaforce.com/en/detail/index.html?content_id=${encodeURIComponent(
+              contentId
+            )}`,
+        image: normalizeAnnouncementImage(item.pic_urls?.[0]),
+      };
+    }),
+  };
+}
+
+async function fetchAnnouncementsOnce(game, limit, start, language = 'zh-CN') {
+  if (language === 'en') {
+    return fetchInternationalAnnouncementsOnce(game, limit, start);
+  }
   if (game === '暗区突围') {
     return fetchArenaAnnouncementsOnce(limit, start);
   }
   return fetchDeltaAnnouncementsOnce(limit, start);
 }
 
-async function fetchAnnouncements(game, limit, start) {
+async function fetchAnnouncements(game, limit, start, language = 'zh-CN') {
   try {
-    return await fetchAnnouncementsOnce(game, limit, start);
+    return await fetchAnnouncementsOnce(game, limit, start, language);
   } catch {
     await new Promise((resolve) => setTimeout(resolve, 600));
-    return fetchAnnouncementsOnce(game, limit, start);
+    return fetchAnnouncementsOnce(game, limit, start, language);
   }
 }
 
@@ -822,30 +946,45 @@ async function handleApi(req, res, pathname, url) {
         50
       );
       const start = Math.max(Number(url.searchParams.get('start') || 0), 0);
+      const language =
+        url.searchParams.get('lang') === 'en' ? 'en' : 'zh-CN';
       const now = Date.now();
+      const gameCacheGroup =
+        announcementCache[game] || createAnnouncementCacheGroup();
+      announcementCache[game] = gameCacheGroup;
       const gameCache =
-        announcementCache[game] || createAnnouncementCache();
-      announcementCache[game] = gameCache;
+        gameCacheGroup[language] || createAnnouncementCache();
+      gameCacheGroup[language] = gameCache;
 
       if (
         start === 0 &&
         gameCache.items.length &&
         now - gameCache.at < ANNOUNCEMENT_CACHE_MS
       ) {
-        return sendJson(res, 200, { ...gameCache, cached: true, game });
+        return sendJson(res, 200, {
+          ...gameCache,
+          cached: true,
+          game,
+          language,
+        });
       }
 
       try {
-        const result = await fetchAnnouncements(game, limit, start);
+        const result = await fetchAnnouncements(
+          game,
+          limit,
+          start,
+          language
+        );
         if (start === 0) {
-          announcementCache[game] = {
+          gameCacheGroup[language] = {
             at: now,
             total: result.total,
             items: result.items,
           };
           saveAnnouncementCache();
         }
-        return sendJson(res, 200, { ...result, game });
+        return sendJson(res, 200, { ...result, game, language });
       } catch (err) {
         if (gameCache.items.length) {
           return sendJson(res, 200, {
@@ -853,11 +992,18 @@ async function handleApi(req, res, pathname, url) {
             cached: true,
             stale: true,
             game,
-            warning: `网络连接失败，当前显示上次缓存的${gameLabel(game)}公告`,
+            language,
+            warning:
+              language === 'en'
+                ? `Network request failed. Showing cached ${gameLabel(game)} announcements.`
+                : `网络连接失败，当前显示上次缓存的${gameLabel(game)}公告`,
           });
         }
         return sendJson(res, 502, {
-          error: '无法连接公告服务器，请检查网络后重试',
+          error:
+            language === 'en'
+              ? 'Unable to connect to the announcement server. Check your network and try again.'
+              : '无法连接公告服务器，请检查网络后重试',
           code: 'ANNOUNCEMENT_NETWORK_ERROR',
         });
       }

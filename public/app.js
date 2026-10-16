@@ -8,6 +8,7 @@
     settingsCodeMode: "view",
     importScope: "",
     reorderMode: false,
+    i18nTranslating: false,
     switchToken: 0,
     contentEnterTimer: null,
     resultsAnimationTimer: null,
@@ -21,6 +22,7 @@
       stale: false,
       warning: "",
       game: "",
+      requestId: 0,
     },
     filters: {
       game: "暗区突围",
@@ -34,6 +36,7 @@
   const settings = {
     theme: "light",
     gameMode: "all",
+    language: "zh-CN",
   };
 
   let draggedRow = null;
@@ -43,10 +46,16 @@
   const animatedSegmentIndicators = new WeakSet();
 
   const $ = (selector) => document.querySelector(selector);
+  const I18N = window.MarkuI18N;
+  const t = (text) =>
+    I18N ? I18N.translate(text, settings.language) : text;
+  const trMessage = (text) =>
+    I18N ? I18N.translateMessage(text, settings.language) : text;
 
   const listEl = $("#list");
   const searchInput = $("#searchInput");
   const searchMirror = $("#searchMirror");
+  const searchMirrorTrack = $("#searchMirrorTrack");
   const searchClearBtn = $("#searchClearBtn");
   const typeFilter = $("#typeFilter");
   const typeFilterDropdown = $("#typeFilterDropdown");
@@ -77,11 +86,11 @@
   const confirmTitle = $("#confirmTitle");
   const confirmMessage = $("#confirmMessage");
   const confirmOkBtn = $("#confirmOkBtn");
-  const confirmCancelBtn = $("#confirmCancelBtn");
 
   const settingsBtn = $("#settingsBtn");
   const settingsDialog = $("#settingsDialog");
   const themeControl = $("#themeControl");
+  const languageControl = $("#languageControl");
   const gameControl = $("#gameControl");
   const queryCodesBtn = $("#queryCodesBtn");
   const importCodesBtn = $("#importCodesBtn");
@@ -151,6 +160,15 @@
   function getDeltaMode(item) {
     const code = String(item && item.code ? item.code : "");
     if (/BLAST6/i.test(code)) return "黑潮爆破配装码";
+    const international = code.match(
+      /-(Operations(?:\s*\(Extraction Mode\))?|Warfare|Detonation)-/i
+    );
+    if (international) {
+      const mode = international[1].toLowerCase();
+      if (mode.startsWith("operations")) return "烽火地带改枪码";
+      if (mode === "warfare") return "全面战场改枪码";
+      if (mode === "detonation") return "黑潮爆破改枪码";
+    }
     if (code.includes("-黑潮爆破-")) return "黑潮爆破改枪码";
     if (code.includes("-全面战场-")) return "全面战场改枪码";
     if (code.includes("-烽火地带-")) return "烽火地带改枪码";
@@ -194,12 +212,87 @@
   ];
 
   const GAME_LABELS = {
-    暗区突围: "暗区突围：无限",
-    三角洲行动: "三角洲行动",
+    "zh-CN": {
+      暗区突围: "暗区突围：无限",
+      三角洲行动: "三角洲行动",
+    },
+    en: {
+      暗区突围: "Arena Breakout: Infinite",
+      三角洲行动: "Delta Force",
+    },
   };
 
   function gameLabel(game) {
-    return GAME_LABELS[game] || game;
+    return GAME_LABELS[settings.language]?.[game] || game;
+  }
+
+  function translateDocument(root = document.body) {
+    if (!I18N || !root || state.i18nTranslating) return;
+    state.i18nTranslating = true;
+
+    try {
+      const walker = document.createTreeWalker(
+        root,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode(node) {
+            const parent = node.parentElement;
+            if (
+              !parent ||
+              parent.closest(
+                "script, style, textarea, .setting-control-char"
+              ) ||
+              !node.nodeValue.trim()
+            ) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          },
+        }
+      );
+      const textNodes = [];
+      while (walker.nextNode()) textNodes.push(walker.currentNode);
+      textNodes.forEach((node) => {
+        const translated = I18N.translate(node.nodeValue, settings.language);
+        if (translated !== node.nodeValue) node.nodeValue = translated;
+      });
+
+      root
+        .querySelectorAll(
+          "[placeholder], [aria-label], [data-tooltip], [data-placeholder], [title], [alt]"
+        )
+        .forEach((element) => {
+          [
+            "placeholder",
+            "aria-label",
+            "data-tooltip",
+            "data-placeholder",
+            "title",
+            "alt",
+          ].forEach((attribute) => {
+            if (!element.hasAttribute(attribute)) return;
+            const value = element.getAttribute(attribute);
+            const translated = I18N.translate(value, settings.language);
+            if (translated !== value) {
+              element.setAttribute(attribute, translated);
+            }
+          });
+        });
+    } finally {
+      state.i18nTranslating = false;
+    }
+  }
+
+  function setupI18nObserver() {
+    const observer = new MutationObserver(() => {
+      if (state.i18nTranslating) return;
+      window.requestAnimationFrame(() => translateDocument());
+    });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
   }
 
   function escapeHtml(value) {
@@ -220,7 +313,7 @@
     const openDialogs = [...document.querySelectorAll("dialog[open]")];
     const host = openDialogs.at(-1) || document.body;
     if (toast.parentElement !== host) host.appendChild(toast);
-    toast.textContent = message;
+    toast.textContent = trMessage(message);
     toast.classList.add("show");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove("show"), 1900);
@@ -286,7 +379,9 @@
       parent.appendChild(copyTip);
     }
 
-    copyTip.innerHTML = `${ICONS.check}<span>${escapeHtml(message)}</span>`;
+    copyTip.innerHTML = `${ICONS.check}<span>${escapeHtml(
+      trMessage(message)
+    )}</span>`;
     copyTipAnchor = button;
     copyTip.classList.add("show");
     if (copyTipFrame) cancelAnimationFrame(copyTipFrame);
@@ -403,7 +498,9 @@
   function showActionTip(button, message) {
     if (!button) return;
     const rect = button.getBoundingClientRect();
-    actionTip.innerHTML = `${ICONS.check}<span>${escapeHtml(message)}</span>`;
+    actionTip.innerHTML = `${ICONS.check}<span>${escapeHtml(
+      trMessage(message)
+    )}</span>`;
     const tipWidth = actionTip.offsetWidth;
     const left = Math.max(rect.left - 8, tipWidth + 8);
     actionTip.style.left = `${left}px`;
@@ -435,10 +532,9 @@
   }
 
   function showConfirm(message, options = {}) {
-    confirmTitle.textContent = options.title || "确认";
-    confirmMessage.textContent = message;
-    confirmOkBtn.textContent = options.okText || "确定";
-    confirmCancelBtn.hidden = Boolean(options.hideCancel);
+    confirmTitle.textContent = trMessage(options.title || "确认");
+    confirmMessage.textContent = trMessage(message);
+    confirmOkBtn.textContent = trMessage(options.okText || "确定");
     return new Promise((resolve) => {
       confirmResolve = resolve;
       showDialog(confirmDialog, confirmOkBtn);
@@ -464,6 +560,9 @@
       }
       if (["暗区突围", "三角洲行动", "all"].includes(saved.gameMode)) {
         settings.gameMode = saved.gameMode;
+      }
+      if (["zh-CN", "en"].includes(saved.language)) {
+        settings.language = saved.language;
       }
     } catch {
       // Ignore invalid or unavailable storage.
@@ -583,28 +682,119 @@
 
   function updateSegmentIndicators({ animate = true } = {}) {
     updateSegmentIndicator(themeControl, { animate });
+    updateSegmentIndicator(languageControl, { animate });
     updateSegmentIndicator(gameControl, { animate });
   }
 
-  function updateSettingsUI() {
+  function updateSettingsUI({ animate = true } = {}) {
     themeControl.querySelectorAll("[data-theme-value]").forEach((button) => {
       button.classList.toggle(
         "is-active",
         button.dataset.themeValue === settings.theme
       );
     });
+    languageControl
+      .querySelectorAll("[data-language-value]")
+      .forEach((button) => {
+        button.classList.toggle(
+          "is-active",
+          button.dataset.languageValue === settings.language
+        );
+      });
     gameControl.querySelectorAll("[data-game-mode]").forEach((button) => {
       button.classList.toggle(
         "is-active",
         button.dataset.gameMode === settings.gameMode
       );
     });
-    updateSegmentIndicators();
+    updateSegmentIndicators({ animate });
+  }
+
+  function setSettingControlLabels() {
+    themeControl.querySelectorAll("[data-theme-value]").forEach((button) => {
+      button.textContent = t(
+        button.dataset.themeValue === "light" ? "白天" : "黑夜"
+      );
+    });
+    languageControl
+      .querySelectorAll("[data-language-value]")
+      .forEach((button) => {
+        button.textContent =
+          button.dataset.languageValue === "zh-CN" ? "中文" : "English";
+      });
+    gameControl.querySelectorAll("[data-game-mode]").forEach((button) => {
+      if (button.dataset.gameMode === "all") {
+        button.textContent = t("我都玩");
+      } else if (
+        settings.language === "en" &&
+        button.dataset.gameMode === "暗区突围"
+      ) {
+        button.textContent = "Arena Breakout";
+      } else {
+        button.textContent = gameLabel(button.dataset.gameMode);
+      }
+    });
+
+    const actionLabels = {
+      queryCodesBtn: "预览当前配置码",
+      importCodesBtn: "导入本地配置码",
+      openLocationBtn: "打开文件所在位置",
+      feedbackBtn: "来Github给我留言吧!",
+      importSelectFileBtn: "选择本地TXT文件",
+    };
+    Object.entries(actionLabels).forEach(([id, label]) => {
+      const button = document.getElementById(id);
+      if (button) button.textContent = t(label);
+    });
+  }
+
+  function updateGameTabLabels() {
+    gameTabs.querySelectorAll(".tab").forEach((tab) => {
+      const label = tab.querySelector("span");
+      if (label) label.textContent = gameLabel(tab.dataset.game);
+    });
+  }
+
+  function refreshDropdownLabels() {
+    [typeFilterDropdown, deltaModeDropdown, fieldTypeDropdown].forEach(
+      (dropdown) => {
+        const input = dropdown.querySelector(".dropdown-value");
+        setDropdownValue(dropdown, input.value);
+      }
+    );
+  }
+
+  function applyLanguage({ animate = true } = {}) {
+    document.documentElement.lang = settings.language;
+    setSettingControlLabels();
+    translateDocument(document.body);
+    setupSettingControlAnimations();
+    updateSettingsUI({ animate });
+    updateGameTabLabels();
+    updateCodeLabel();
+    updateDeltaFormFields();
+    updateReorderButton();
+    updateClearFilterButton();
+    const game = state.filters.game;
+    const isArena = game === "暗区突围";
+    const label = gameLabel(game);
+    gameTitle.textContent = label;
+    gameLogo.src = isArena
+      ? "/assets/arena-breakout-icon.png?v=20261016-1"
+      : "/assets/delta-force-icon.png?v=20261016-1";
+    gameLogo.alt = label;
+    typeFilterDropdown.hidden = !isArena;
+    deltaModeDropdown.hidden = isArena;
+    settingsCodeBtn.hidden = !isArena;
+    render();
+    refreshDropdownLabels();
+    translateDocument(document.body);
+    if (announcementsDialog.open) loadAnnouncements();
   }
 
   function setupSettingControlAnimations() {
     const controls = document.querySelectorAll(
-      "#themeControl .segment, #gameControl .segment, .setting-action"
+      "#themeControl .segment, #languageControl .segment, #gameControl .segment, .setting-action"
     );
     controls.forEach((control) => {
       const text = control.textContent || "";
@@ -1013,6 +1203,7 @@
     listEl.innerHTML = items.length
       ? items.map(rowHTML).join("")
       : emptyHTML();
+    translateDocument(listEl);
 
     clearTimeout(state.resultsAnimationTimer);
     listEl.classList.remove("is-results-entering");
@@ -1079,6 +1270,7 @@
     if (!item) return;
     state.currentId = id;
     detailBody.innerHTML = detailHTML(item);
+    translateDocument(detailBody);
 
     const copyBtn = detailBody.querySelector("#detailCopyBtn");
     copyBtn.addEventListener("click", () => copyCode(item, copyBtn));
@@ -1089,7 +1281,12 @@
   }
 
   function showFormError(message) {
-    formError.textContent = message;
+    const separator = settings.language === "en" ? "; " : "；";
+    formError.textContent = String(message)
+      .split(/[；;]/)
+      .map((part) => trMessage(part.trim()))
+      .filter(Boolean)
+      .join(separator);
     formError.hidden = false;
   }
 
@@ -1105,21 +1302,21 @@
     if (state.formGame !== "三角洲行动") {
       priceField.hidden = false;
       priceSuffix.hidden = false;
-      fieldPrice.placeholder = fieldType.value ? "例如：30" : "";
+      fieldPrice.placeholder = fieldType.value ? t("例如：30") : "";
       weaponFieldLabel.textContent =
         fieldType.value === "配装码"
-          ? "配装描述"
+          ? t("配装描述")
           : fieldType.value === "改枪码"
-          ? "枪械描述"
-          : "描述";
+          ? t("枪械描述")
+          : t("描述");
       fieldWeapon.placeholder =
         !fieldType.value
           ? ""
           : fieldType.value === "配装码"
-          ? "五套AEK"
+          ? t("例如：五套AEK")
           : fieldType.value === "改枪码"
-          ? "H416"
-          : "请输入描述";
+          ? t("例如：H416")
+          : t("请输入描述");
       updateFormGrid();
       return;
     }
@@ -1135,17 +1332,17 @@
       !mode
         ? ""
         : mode === "黑潮爆破改枪码"
-        ? "例如：3300"
-        : "例如：30";
+        ? t("例如：3300")
+        : t("例如：30");
     weaponFieldLabel.textContent = !mode
-      ? "描述"
+      ? t("描述")
       : isBlackTideLoadout
-      ? "配装描述"
-      : "枪械描述";
+      ? t("配装描述")
+      : t("枪械描述");
     fieldWeapon.placeholder = isBlackTideLoadout
-      ? "例如：攻防兼备"
+      ? t("例如：攻防兼备")
       : mode
-      ? "例如：QJB201两倍45发"
+      ? t("例如：QJB201两倍45发")
       : "";
     updateFormGrid();
   }
@@ -1174,16 +1371,18 @@
       }
       codeLabel.textContent =
         getEffectiveDeltaMode() === "黑潮爆破配装码"
-          ? "配装方案码"
-          : "改枪码";
+          ? t("配装方案码")
+          : t("改枪码");
     } else {
-      codeLabel.textContent = fieldType.value || "代码";
+      codeLabel.textContent = fieldType.value
+        ? t(fieldType.value)
+        : t("代码");
     }
   }
 
   function openForm(item) {
     state.formGame = item ? item.game : state.filters.game;
-    formTitle.textContent = item ? "编辑" : "新增";
+    formTitle.textContent = item ? t("编辑") : t("新增");
 
     fieldId.value = item ? item.id : "";
     setFormTypeOptions(state.formGame);
@@ -1446,7 +1645,6 @@
         {
           title: "导入检查失败",
           okText: "知道了",
-          hideCancel: true,
         }
       );
       return;
@@ -1462,7 +1660,6 @@
         {
           title: "导入检查失败",
           okText: "知道了",
-          hideCancel: true,
         }
       );
       return;
@@ -1853,7 +2050,13 @@
   }
 
   function isUpdateAnnouncement(item) {
-    return item.title.includes("更新");
+    const title = item.title || "";
+    if (settings.language === "en") {
+      return /\b(?:live update|patch notes|maintenance|hotfix|balance adjustments|new mini-mode)\b/i.test(
+        title
+      );
+    }
+    return title.includes("更新");
   }
 
   function renderAnnouncements() {
@@ -1882,16 +2085,19 @@
   }
 
   async function loadAnnouncements() {
-    if (state.announcements.loading) return;
     const game = state.filters.game;
+    const requestId = ++state.announcements.requestId;
     state.announcements.loading = true;
     announcementList.innerHTML = '<div class="empty">加载中...</div>';
 
     try {
       const res = await fetch(
-        `/api/announcements?game=${encodeURIComponent(game)}&limit=20&start=0`
+        `/api/announcements?game=${encodeURIComponent(
+          game
+        )}&lang=${encodeURIComponent(settings.language)}&limit=20&start=0`
       );
       const data = await res.json().catch(() => ({}));
+      if (requestId !== state.announcements.requestId) return;
       if (!res.ok) {
         throw new Error(
           data.error || "无法连接公告服务器，请检查网络后重试"
@@ -1904,13 +2110,16 @@
       state.announcements.game = data.game || game;
       renderAnnouncements();
     } catch (err) {
+      if (requestId !== state.announcements.requestId) return;
       announcementList.innerHTML = `<div class="empty">
         <strong>公告加载失败</strong>
         ${escapeHtml(err.message)}
         <div class="announcement-hint">请检查网络，然后点击右上角刷新重试。</div>
       </div>`;
     } finally {
-      state.announcements.loading = false;
+      if (requestId === state.announcements.requestId) {
+        state.announcements.loading = false;
+      }
     }
   }
 
@@ -2039,7 +2248,7 @@
   });
 
   function syncSearchMirrorScroll() {
-    searchMirror.style.transform = `translateX(${-searchInput.scrollLeft}px)`;
+    searchMirrorTrack.style.transform = `translateX(${-searchInput.scrollLeft}px)`;
   }
 
   function renderSearchMirror(value, animate = true) {
@@ -2067,7 +2276,7 @@
       fragment.appendChild(span);
     }
 
-    searchMirror.replaceChildren(fragment);
+    searchMirrorTrack.replaceChildren(fragment);
     searchMirrorValue = value;
     requestAnimationFrame(syncSearchMirrorScroll);
   }
@@ -2332,7 +2541,6 @@
       {
         title: "跳转提示",
         okText: "前往 GitHub",
-        hideCancel: true,
       }
     );
     if (!confirmed) return;
@@ -2350,6 +2558,14 @@
     saveSettings();
     applyTheme();
     updateSettingsUI();
+  });
+
+  languageControl.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-language-value]");
+    if (!button) return;
+    settings.language = button.dataset.languageValue;
+    saveSettings();
+    applyLanguage();
   });
 
   gameControl.addEventListener("click", (event) => {
@@ -2527,12 +2743,11 @@
     closeConfirm(false);
   });
   confirmOkBtn.addEventListener("click", () => closeConfirm(true));
-  confirmCancelBtn.addEventListener("click", () => closeConfirm(false));
 
   loadSettings();
   applyTheme({ animate: false });
-  updateSettingsUI();
-  setupSettingControlAnimations();
+  applyLanguage({ animate: false });
+  setupI18nObserver();
   initDropdown(typeFilterDropdown);
   initDropdown(deltaModeDropdown);
   initDropdown(fieldTypeDropdown);

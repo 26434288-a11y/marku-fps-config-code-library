@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Marku</title>
   <link rel="icon" type="image/png" href="/assets/ak-icon.png?v=20261014-1">
-  <link rel="stylesheet" href="/styles.css?v=20261016-11">
+  <link rel="stylesheet" href="/styles.css?v=20261016-14">
 </head>
 <body>
   <header class="topbar">
@@ -72,7 +72,7 @@
           </svg>
           <span class="search-input-wrap">
             <input id="searchInput" type="search" placeholder="搜索......" autocomplete="off">
-            <span class="search-mirror" id="searchMirror" aria-hidden="true"></span>
+            <span class="search-mirror" id="searchMirror" aria-hidden="true"><span class="search-mirror-track" id="searchMirrorTrack"></span></span>
             <button class="search-clear" id="searchClearBtn" type="button" data-tooltip="清空搜索" aria-label="清空搜索" hidden>
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M18 6 6 18M6 6l12 12"></path>
@@ -240,6 +240,14 @@
           <span class="segment-indicator" aria-hidden="true"></span>
           <button class="segment is-active" type="button" data-theme-value="light">白天</button>
           <button class="segment" type="button" data-theme-value="dark">黑夜</button>
+        </div>
+      </div>
+      <div class="setting-group">
+        <div class="setting-label">语言</div>
+        <div class="segmented" id="languageControl">
+          <span class="segment-indicator" aria-hidden="true"></span>
+          <button class="segment is-active" type="button" data-language-value="zh-CN">中文</button>
+          <button class="segment" type="button" data-language-value="en">English</button>
         </div>
       </div>
       <div class="setting-group">
@@ -414,7 +422,6 @@
       <p class="confirm-message" id="confirmMessage"></p>
     </div>
     <div class="dialog-footer">
-      <button class="btn" type="button" id="confirmCancelBtn">取消</button>
       <button class="btn btn-danger-solid" type="button" id="confirmOkBtn">确定</button>
     </div>
   </dialog>
@@ -444,7 +451,8 @@
   </dialog>
 
   <script src="/vendor/pinyin-pro.min.js"></script>
-  <script src="/import-parser.js?v=20261015-2" defer></script>
-  <script src="/app.js?v=20261016-6" defer></script>
+  <script src="/import-parser.js?v=20261016-2" defer></script>
+  <script src="/i18n.js?v=20261016-5" defer></script>
+  <script src="/app.js?v=20261016-16" defer></script>
 </body>
 </html>

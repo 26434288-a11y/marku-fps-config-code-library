@@ -4,11 +4,39 @@
 
 Important updates to this project are recorded in this file.
 
+## [1.4.0] - 2026-10-16
+
+### 新增 Added
+
+- 新增中文、英文界面即时切换，并保存用户选择<br>Added instant Chinese and English UI switching with the selected language saved locally
+- 英文界面接入两家游戏国际服官方公告，并按语言分别缓存<br>Added official international announcements for both games in English mode, with language-specific caching
+- 新增国际服配置码导入兼容，支持暗区 `3f...`、`Mod Gun-...`、`Equipment-...`，三角洲 `Operations`、`Warfare`、`Detonation` 和 `BLAST6...`<br>Added import compatibility for international code formats, including Arena Breakout `3f...`, `Mod Gun-...`, and `Equipment-...`, plus Delta Force `Operations`, `Warfare`, `Detonation`, and `BLAST6...`
+- 英文导入支持英文游戏分区、英文设置字段和无分区代码识别<br>English imports now support English game sections, English settings fields, and automatic recognition without a section heading
+- 国际服解析保留完整代码，并按中文数据模型自动归类模式与类型<br>International codes are preserved in full and mapped automatically to the existing mode and type data model
+
+### 变更 Changed
+
+- 英文改枪码术语统一为 Gun Build Code，三角洲模式采用 Operations、Warfare、Black Tide Demolition，国际服代码标记为 Detonation<br>Standardized English terminology to Gun Build Code; Delta Force modes use Operations, Warfare, and Black Tide Demolition, with Detonation used in international code strings
+- 暗区配装描述示例由 Five-piece AEK 修正为国际服常用的 T5 AEK loadout<br>Corrected the Arena Breakout loadout example from Five-piece AEK to the international T5 AEK loadout wording
+- 确认弹窗移除冗余取消按钮，只保留右上角关闭和确认操作<br>Removed the redundant Cancel button from confirmation dialogs, keeping the top-right close button and confirmation action
+- 统一 CHANGELOG 和 GitHub Release 的双语标题格式<br>Standardized bilingual headings across the CHANGELOG and GitHub Releases
+- 项目文档同步更新国际服术语和导入格式说明<br>Updated project documentation with international terminology and import format guidance
+
+### 修复 Fixed
+
+- 修复长搜索文本滚动时压住搜索图标的问题<br>Fixed long search text overlapping the search icon while horizontally scrolling
+- 修复英文公告因标题不包含“更新”而无法显示的问题<br>Fixed English announcements not appearing when their titles did not contain the Chinese word for update
+- 修复切换语言时错误进入游戏切换流程并清空筛选条件的问题<br>Fixed language switching incorrectly running the game-switch flow and clearing active filters
+
+### 下载 Downloads
+
+- [Marku v1.4.0](https://github.com/26434288-a11y/marku-fps-config-code-library/releases/tag/v1.4.0)
+
 ## [1.3.0] - 2026-10-16
 
 ### 新增 Added
 
-- 三角洲行动新增烽火地带改枪码、全面战场改枪码、黑潮爆破改枪码和黑潮爆破配装码，并支持按代码格式自动识别和筛选<br>Added Delta Force Operations weapon build codes, Warfare weapon build codes, Black Tide weapon build codes, and Black Tide loadout codes, with automatic recognition and filtering based on code format
+- 三角洲行动新增烽火地带改枪码、全面战场改枪码、黑潮爆破改枪码和黑潮爆破配装码，并支持按代码格式自动识别和筛选<br>Added Delta Force Operations gun build codes, Warfare gun build codes, Black Tide Demolition gun build codes, and Black Tide Demolition loadout codes, with automatic recognition and filtering based on code format
 - 新增“清空筛选”；筛选生效时禁止进入调整顺序模式，并显示原因提示<br>Added "Clear filters"; reorder mode is disabled while filters are active and now explains why
 - 游戏标题和页签新增暗区突围：无限、三角洲行动官方图标，移动端标题仅保留缩小后的游戏图标<br>Added official Arena Breakout: Infinite and Delta Force icons to the game title and tabs; mobile view keeps only the smaller game icon
 - 移动端卡片操作合并为“更多操作”菜单，可复制、编辑和删除<br>Combined mobile card actions into a More Actions menu for copy, edit, and delete
@@ -40,7 +68,7 @@ Important updates to this project are recorded in this file.
 
 ### 新增 Added
 
-- 新增分类导入，支持三角洲改枪码、暗区配装/改枪码、暗区设置码和全部配置码<br>Added categorized import for Delta Force weapon build codes, Arena Breakout loadout/weapon build codes, Arena Breakout settings codes, and all configuration codes
+- 新增分类导入，支持三角洲改枪码、暗区配装/改枪码、暗区设置码和全部配置码<br>Added categorized import for Delta Force gun build codes, Arena Breakout loadout/gun build codes, Arena Breakout settings codes, and all configuration codes
 - 导入支持游戏分区和无分区代码格式自动识别，并校验混合类型和残缺信息<br>Import now auto-detects both game-sectioned and non-sectioned code formats, and validates mixed types and incomplete information
 - 预览配置码新增 data 文件夹备份入口<br>Added a data folder backup entry to Preview Configuration Codes
 - 设置新增“打开文件所在位置”，使用原生启动器快速打开并置前资源管理器<br>Added "Open file location" in Settings, using the native launcher to quickly open and focus File Explorer
@@ -128,7 +156,7 @@ Important updates to this project are recorded in this file.
 ### 新增 Added
 
 - 暗区突围和三角洲行动双游戏页签<br>Dual game tabs for Arena Breakout: Infinite and Delta Force
-- 改枪码和配装码管理<br>Weapon build code and loadout code management
+- 改枪码和配装码管理<br>Gun build code and loadout code management
 - 暗区突围设置码管理<br>Arena Breakout settings code management
 - 枪械描述搜索，支持拼音和拼音首字母<br>Weapon description search with pinyin and pinyin initial support
 - 类型筛选、配置详情和复制反馈<br>Type filtering, configuration details, and copy feedback

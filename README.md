@@ -2,12 +2,12 @@
 
 一个轻量的游戏配置码管理网站，用于记录《暗区突围：无限》和《三角洲行动》的改枪码、配装码和暗区设置码。
 
-A lightweight game configuration code manager for storing weapon build codes, loadout codes, and Arena Breakout settings codes for Arena Breakout: Infinite and Delta Force.
+A lightweight game configuration code manager for storing gun build codes, loadout codes, and Arena Breakout settings codes for Arena Breakout: Infinite and Delta Force.
 
 ## 功能 / Features
 
 - 暗区突围：无限、三角洲行动双游戏页签<br>Arena Breakout: Infinite and Delta Force dual game tabs
-- 改枪码、配装码管理<br>Weapon build code and loadout code management
+- 改枪码、配装码管理<br>Gun build code and loadout code management
 - 暗区突围：无限设置码管理<br>Arena Breakout: Infinite settings code management
 - 按枪械描述搜索，支持拼音和拼音首字母<br>Search by weapon description, with pinyin and pinyin initial support
 - 类型筛选、卡片详情、复制反馈<br>Type filtering, card details, and copy feedback

@@ -13,15 +13,35 @@
     ["暗区突围：无限", "暗区突围"],
     ["暗区突围:无限", "暗区突围"],
     ["arena breakout infinite", "暗区突围"],
+    ["arena breakout: infinite", "暗区突围"],
     ["三角洲行动", "三角洲行动"],
     ["delta force", "三角洲行动"],
+    ["delta force: hawk ops", "三角洲行动"],
   ]);
 
   const SETTING_FIELDS = new Map([
     ["游戏", "gameCode"],
     ["控制", "controlCode"],
     ["后处理", "postCode"],
+    ["game", "gameCode"],
+    ["control", "controlCode"],
+    ["post-processing", "postCode"],
+    ["post processing", "postCode"],
   ]);
+
+  const TYPE_ALIASES = new Map([
+    ["改枪码", "改枪码"],
+    ["配装码", "配装码"],
+    ["gun build code", "改枪码"],
+    ["build code", "改枪码"],
+    ["mod gun", "改枪码"],
+    ["loadout code", "配装码"],
+    ["equipment code", "配装码"],
+    ["equipment", "配装码"],
+  ]);
+
+  const DELTA_MODE_PATTERN =
+    "Operations(?:\\s*\\(Extraction Mode\\))?|Warfare|Detonation";
 
   function normalizeHeading(value) {
     return String(value || "")
@@ -47,16 +67,72 @@
       .trim();
   }
 
+  function normalizeType(value) {
+    const key = String(value || "")
+      .trim()
+      .replace(/[：:]$/, "")
+      .toLowerCase();
+    return TYPE_ALIASES.get(key) || "";
+  }
+
+  function findExplicitType(line) {
+    const tokens = String(line || "").match(
+      /改枪码|配装码|Gun Build Code|Build Code|Mod Gun|Loadout Code|Equipment Code|Equipment/gi
+    );
+    if (!tokens || !tokens.length) return "";
+    return normalizeType(tokens[tokens.length - 1]);
+  }
+
+  function inferArenaType(code) {
+    const value = String(code || "").trim();
+    if (/^Equipment-/i.test(value)) return "配装码";
+    if (/^配装[-_]/i.test(value)) return "配装码";
+    if (/^改枪[-_]/i.test(value)) return "改枪码";
+    if (/^(?:Mod Gun-)?3f[A-Za-z0-9]{10,}$/i.test(value)) return "改枪码";
+    return "";
+  }
+
+  function extractDeltaWeapon(code) {
+    const match = String(code || "").match(
+      new RegExp(`^(.*?)-(?:${DELTA_MODE_PATTERN})-[A-Za-z0-9]{6,}$`, "i")
+    );
+    return match ? match[1].trim() : "";
+  }
+
+  function cleanCodePrefix(value) {
+    return String(value || "")
+      .replace(
+        /^(?:.*?\b)?(?:gun build code|build code|loadout code)\s*[:：\-–—]*\s*/i,
+        ""
+      )
+      .replace(/^[|｜,，:：\-\s]+/, "")
+      .replace(/[|｜,，:：\-\s]+$/, "")
+      .trim();
+  }
+
   function findCodeInLine(line) {
     const arenaSetting = line.match(
-      /(游戏|控制|后处理)-(?:[A-Za-z0-9_-]+)/i
+      /(游戏|控制|后处理|Game|Control|Post[-\s]?Processing)\s*[-|:：]\s*([A-Za-z0-9_-]+)/i
     );
     if (arenaSetting) {
+      const fieldKey = arenaSetting[1]
+        .toLowerCase()
+        .replace(/\s+/g, " ");
       return {
         kind: "setting",
         game: "暗区突围",
-        field: SETTING_FIELDS.get(arenaSetting[1]),
+        field: SETTING_FIELDS.get(fieldKey) || SETTING_FIELDS.get(arenaSetting[1]),
         code: arenaSetting[0],
+      };
+    }
+
+    const arenaEquipment = line.match(/\bEquipment-[A-Za-z0-9]{8,}\b/i);
+    if (arenaEquipment) {
+      return {
+        kind: "code",
+        game: "暗区突围",
+        type: "配装码",
+        code: arenaEquipment[0],
       };
     }
 
@@ -67,6 +143,52 @@
         game: "暗区突围",
         type: arenaCode[1] === "配装" ? "配装码" : "改枪码",
         code: arenaCode[0],
+      };
+    }
+
+    const arenaModGun = line.match(
+      /\bMod Gun-([A-Za-z0-9]{10,30})\b/i
+    );
+    if (arenaModGun) {
+      return {
+        kind: "code",
+        game: "暗区突围",
+        type: "改枪码",
+        code: arenaModGun[1],
+      };
+    }
+
+    const arenaBuildCode = line.match(/\b(3f[A-Za-z0-9]{10,24})\b/);
+    if (arenaBuildCode) {
+      return {
+        kind: "code",
+        game: "暗区突围",
+        type: "改枪码",
+        code: arenaBuildCode[1],
+      };
+    }
+
+    const deltaLoadout = line.match(/\bBLAST6[A-Za-z0-9]{6,}\b/i);
+    if (deltaLoadout) {
+      return {
+        kind: "code",
+        game: "三角洲行动",
+        type: "配装码",
+        code: deltaLoadout[0],
+      };
+    }
+
+    const deltaEnglish = line.match(
+      new RegExp(`-(?:${DELTA_MODE_PATTERN})-[A-Za-z0-9]{6,}`, "i")
+    );
+    if (deltaEnglish) {
+      const modeAndCode = deltaEnglish[0].slice(1);
+      const prefix = cleanCodePrefix(line.slice(0, deltaEnglish.index));
+      return {
+        kind: "code",
+        game: "三角洲行动",
+        type: "改枪码",
+        code: prefix ? `${prefix}-${modeAndCode}` : modeAndCode,
       };
     }
 
@@ -108,8 +230,22 @@
           (part) =>
             part !== "改枪码" &&
             part !== "配装码" &&
+            !/^code[：:]?$/i.test(part) &&
+            !/^(?:gun|kit|build|loadout|equipment|mod|code|mod gun)$/i.test(
+              part
+            ) &&
+            !/^(?:build|gun build|loadout|equipment) code$/i.test(part) &&
             !/^\d+(?:\.\d+)?[Ww]?$/.test(part)
         )
+        .map((part) =>
+          part
+            .replace(/^(?:build code|gun build code|loadout code|mod gun)[：:\-–—]*$/i, "")
+            .replace(/^(?:mod\s+)?gun[：:\-–—]*$/i, "")
+            .replace(/^kit[：:\-–—]*$/i, "")
+            .replace(/^[：:\-–—]+|[：:\-–—]+$/g, "")
+            .trim()
+        )
+        .filter(Boolean)
         .join(" ")
         .trim();
 
@@ -123,9 +259,19 @@
         source.slice(codeIndex + codeInfo.code.length)
       );
       if (after) return after;
+
+      if (codeInfo.game === "三角洲行动") {
+        return extractDeltaWeapon(codeInfo.code);
+      }
+      return "";
     }
 
-    return cleanWeapon(source);
+    const cleaned = cleanWeapon(source);
+    if (cleaned) return cleaned;
+    if (codeInfo.game === "三角洲行动") {
+      return extractDeltaWeapon(codeInfo.code);
+    }
+    return "";
   }
 
   function parseImportText(text) {
@@ -153,9 +299,13 @@
       }
 
       const settingMatch = line.match(
-        /^(游戏|控制|后处理)\s*(?:[|｜:：,，]|\t)\s*(.*)$/
+        /^(游戏|控制|后处理|Game|Control|Post[-\s]?Processing)\s*(?:[|｜:：,，]|\t)\s*(.*)$/i
       );
       if (settingMatch) {
+        const settingLabel = settingMatch[1];
+        const settingField = SETTING_FIELDS.get(
+          settingLabel.toLowerCase().replace(/\s+/g, " ")
+        );
         if (currentGame && currentGame !== "暗区突围") {
           issues.push({
             line: lineNumber,
@@ -168,16 +318,19 @@
         if (!value) {
           issues.push({
             line: lineNumber,
-            message: `${settingMatch[1]}设置码不能为空`,
+            message: `${settingLabel}设置码不能为空`,
             text: line,
           });
           continue;
         }
-        settings[SETTING_FIELDS.get(settingMatch[1])] = value;
+        settings[settingField] = value;
         continue;
       }
 
-      if (/^(游戏|控制|后处理)\s*$/.test(line)) {
+      if (
+        /^(游戏|控制|后处理)\s*$/.test(line) ||
+        /^(Game|Control|Post[-\s]?Processing)\s*$/i.test(line)
+      ) {
         issues.push({
           line: lineNumber,
           message: `${line}设置码缺少内容和分隔符`,
@@ -222,11 +375,11 @@
           continue;
         }
 
-        const explicitType = line.match(/(改枪码|配装码)/);
-        if (explicitType && explicitType[1] !== inlineCode.type) {
+        const explicitType = findExplicitType(line);
+        if (explicitType && explicitType !== inlineCode.type) {
           issues.push({
             line: lineNumber,
-            message: `配置类型“${explicitType[1]}”与代码前缀不一致`,
+            message: `配置类型“${explicitType}”与代码前缀不一致`,
             text: line,
           });
           continue;
@@ -329,17 +482,11 @@
           });
           continue;
         }
-        type = "改枪码";
+        type = /BLAST6/i.test(code) ? "配装码" : "改枪码";
       } else {
-        const typeIndex = parts.findIndex(
-          (part) => part === "改枪码" || part === "配装码"
-        );
+        const typeIndex = parts.findIndex((part) => normalizeType(part));
         code = parts[parts.length - 1];
-        const inferredType = /^改枪[-_]/.test(code)
-          ? "改枪码"
-          : /^配装[-_]/.test(code)
-          ? "配装码"
-          : "";
+        const inferredType = inferArenaType(code);
 
         if (typeIndex === -1) {
           if (!inferredType) {
@@ -373,7 +520,7 @@
             });
             continue;
           }
-          type = parts[typeIndex];
+          type = normalizeType(parts[typeIndex]);
           if (inferredType && inferredType !== type) {
             issues.push({
               line: lineNumber,
